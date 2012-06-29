@@ -5,7 +5,6 @@ package main
 %start assembly
 
 %term IDENT NUMBER CHARACTER STRING
-%term ENCODING_NAME FUNCTION_NAME
 %term OPCODE EX_WORD EX_LONG DC_B DC_W DC_L DCB DCTO EQU
 %term DATAREG ADDRESSREG SR CCR USP PC
 %term INCLUDE INCBIN IF ELSE WHILE REPT FUNC RETURN MACRO PRINT ERROR CHARSET
@@ -64,12 +63,14 @@ operand:
 	;
 
 indirect:
-		'(' ADDRESSREG ')'
-	|	'(' ADDRESSREG ',' DATAREG EX_WORD ')'
-	|	'(' ADDRESSREG ',' DATAREG EX_LONG ')'
-	|	'(' PC ')'
-	|	'(' PC ',' DATAREG EX_WORD ')'
-	|	'(' PC ',' DATAREG EX_LONG ')'
+		'(' address_or_pc ')'
+	|	'(' address_or_pc ',' DATAREG EX_WORD ')'
+	|	'(' address_or_pc ',' DATAREG EX_LONG ')'
+	;
+
+address_or_pc:
+		ADDRESSREG
+	|	PC
 	;
 
 expression:
@@ -78,7 +79,7 @@ expression:
 	|	NUMBER
 	|	CHARACTER
 	|	'(' expression ')'
-	|	FUNCTION_NAME '(' exprlist ')'
+	|	IDENT '(' exprlist ')'
 	|	expression '+' expression
 	|	expression '-' expression
 	|	expression '*' expression
@@ -124,7 +125,7 @@ bytedatalist:
 bytedata:
 		expression
 	|	STRING
-	|	ENCODING_NAME STRING
+	|	IDENT STRING
 	;
 
 exprlist:
@@ -144,4 +145,58 @@ varassign:
 directive:
 		INCLUDE STRING
 	|	INCBIN STRING
+	|	IF expression '{' assembly_no_labels '}'
+	|	IF expression '{' assembly_no_labels '}' ELSE '{' assembly_no_labels '}'
+	|	WHILE expression '{' assembly_no_labels '}'
+	|	REPT expression '{' assembly_no_labels '}'
+/*	|	function
+	|	RETURN
+	|	RETURN expression
+	|	macro
+*/	|	print
+	|	charset
 	;
+
+assembly_no_labels:	/* TODO really have this? it's to avoid complications */
+		/* empty */
+	|	assembly_no_labels assembler_line
+	;
+
+function:
+		FUNC IDENT '(' ')' '{' assembly_no_labels '}'
+	|	FUNC IDENT '(' identlist ')' '{' assembly_no_labels '}'
+	;
+
+macro:
+		MACRO IDENT '(' ')' '{' assembly '}'
+	|	MACRO IDENT '(' identlist ')' '{' assembly '}'
+	;
+
+identlist:
+		IDENT
+	|	identlist ',' IDENT
+	;
+
+print:
+		PRINT STRING
+	|	PRINT STRING ',' exprlist
+	|	ERROR STRING
+	|	ERROR STRING ',' exprlist
+	;
+
+charset:
+		CHARSET IDENT '{' charset_contents '}'
+	;
+
+charset_contents:
+		charset_definition
+	|	charset_contents charset_definition
+	;
+
+charset_definition:
+		CHARACTER
+	|	CHARACTER '=' exprlist
+	|	CHARACTER EQ CHARACTER
+	;
+
+/* TODO STRUCTURES */
