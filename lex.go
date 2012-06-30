@@ -6,6 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 	"bufio"
+	"log"
 
 	// Lexer
 	"fmt"
@@ -87,8 +88,12 @@ func (l *FileLexer) Emit(toktype int) {
 
 func (l *FileLexer) getline() error {
 	line, err := l.File.ReadString('\n')
-	if err != nil {
+	if err == io.EOF {
 		return err
+	} else if err != nil {
+		// apparently most compiliers and assemblers just terminate on read error so let's do it too
+		log.Fatalf("error reading from file %s; assembly terminated: %v\n",
+			l.Filename, err)
 	}
 	l.inputLine = line
 	l.tokStart = 0
@@ -97,21 +102,18 @@ func (l *FileLexer) getline() error {
 	return nil
 }
 
-func (l *FileLexer) read() (rune, error) {
+func (l *FileLexer) read() rune {
 	if l.readPos >= len(l.inputLine) {
 		err := l.getline()
 		if err == io.EOF {
 			l.runeLen = 0			// don't unget an EOF
-			return lexEOF, nil
-		} else if err != nil {
-			l.Error(fmt.Sprintf("error reading from file: %v", err))
-			return lexError, err		// TODO more proper return?
+			return lexEOF
 		}
 	}
 	r, l.runeLen := utf8.DecodeRuneInString(len[i.readPos:])
 	l.readPos += l.runeLen
 	// tokStart is updated either when we emit a token or when we ignore one
-	return r, nil
+	return r
 }
 
 func (l *FileLexer) ignore() {
@@ -124,18 +126,13 @@ func (l *FileLexer) unget() {
 }
 
 func (l *FileLexer) peek() (r rune, err error) {
-	r, err = l.read()
-	if err == nil {
-		// TODO just quit on error?
-		// l.read() gave us the right values anyway
-		l.unget()
-	}
+	r = l.read()
+	l.unget()
 	return
 }
 
 func (l *FileLexer) accept(r rune) bool {
-	c, err := l.read()
-	if err != nil { select { } }	// TODO
+	c := l.read()
 	if r != c {
 		l.unget()
 		return false
@@ -152,8 +149,7 @@ func (l *FileLexer) acceptAndEmit(r rune, ifSo int, ifNot int) {
 }
 
 func lex_next(l *FileLexer) lexState {
-	c, err := l.read()
-	if err != nil { select { } }	// TODO
+	c := l.read()
 	switch {
 	case c == lexEOF:
 		return lex_end
@@ -167,8 +163,7 @@ func lex_next(l *FileLexer) lexState {
 		return lex_next
 	case ';':				// comment; eat line
 		for {
-			c, err = l.read()
-			if err != nil { select { } }			// TODO
+			c = l.read()
 			if c == '\n' {
 				l.unget()
 				break
@@ -250,8 +245,7 @@ func lex_hexNumber(l *FileLexer) lexState {
 
 func lex_ident(l *FileLexer) lexState {
 	for {
-		c, err := l.read()
-		if err != nil { select { } }	// TODO
+		c := l.read()
 		if !unicode.IsLetter(c) && c != '_' && c != '.' {
 			if c < '0' || c > '9' {
 				break
@@ -265,14 +259,10 @@ func lex_ident(l *FileLexer) lexState {
 }
 
 func getStringCharacter(l *FileLexer) (r rune, isEscaped bool) {
-	var err error
-
-	r, err = l.read()
-	if err != nil { select { } }			// TODO
+	r := l.read()
 	if r == '\\' {					// TODO have things like \u?
 		isEscaped = true
-		r, err = l.read()
-		if err != nil { select { } }		// TODO
+		r = l.read()
 		switch r {
 		case 'n':
 			r = '\n'
