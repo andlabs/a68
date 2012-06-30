@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"debug"
+	"log"
 )
 
 func _bug(mode string, format string, args ...interface{}) {
@@ -21,4 +22,9 @@ func _bug(mode string, format string, args ...interface{}) {
 
 func POTENTIAL_BUG(format string, args ...interface{}) {
 	_bug("POTENTIAL BUG?", format, args...)
+}
+
+func FATAL_BUG(format string, args ...interface{}) {
+	_bug("FATAL BUG", format, args...)
+	log.Fatalf("fatal bug reported above; aborting assembly")
 }
