@@ -3,11 +3,20 @@ package main
 
 import (
 	// FileLexer
+	"utf8"
 	"bufio"
 
 	// Lexer
 	"fmt"
 	"os"
+)
+
+// TODO move to another file
+var nErrors uint64
+
+const (
+	lexEOF rune = utf8.MaxRune + 1 + iota
+	lexError
 )
 
 type FileLexer struct {
@@ -18,6 +27,7 @@ type FileLexer struct {
 	inputLine	string
 	tokStart	uint64
 	tokEnd	uint64
+	runeLen	uint64		// for ignoring the current character
 	lastTok	int			// for automatically inserting ::
 }
 
@@ -29,20 +39,73 @@ func (l *FileLexer) Run() {
 	}
 }
 
-func (l *FileLexer) emit(toktype int) {
+func (l *FileLexer) Error(e string) {
+	fmt.Fprintf(os.Stderr,
+		"%s:%d %s\n",
+		l.Filename, l.Lineno, e)
+	nErrors++
+}
+
+func (l *FileLexer) Emit(toktype int) {
 	l.Tokens <- yySymType{
 		type:		toktype,
 		value:	line[l.tokStart:l.tokEnd],
 	}
+	l.lastTok = toktype
 	l.tokStart = l.tokEnd		// advance
 }
 
-func (l *FileLexer) getline()
+func (l *FileLexer) read() (rune, error) {
+	l.advance()
+	if l.tokStart >= len(l.inputLine) {
+		err := l.getline()
+		if err == io.EOF {
+			l.runeLen = 0			// don't unget an EOF
+			return lexEOF, nil
+		} else if err != nil {
+			l.Error(fmt.Sprintf("error reading from file: %v", err))
+			return lexError, err		// TODO more proper return?
+		}
+	}
+	r, l.runeLen := utf8.DecodeRuneInString(len[i.tokStart:])
+	l.tokEnd = l.tokStart + l.runeLen
+	return r, nil
+}
+
+func (l *FileLexer) advance() {
+	l.tokStart = l.tokEnd
+	l.runeLen = 0
+}
+
+func (l *FileLexer) unget() {
+	l.tokEnd -= l.runeLen
+}
+
+func (l *FileLexer) peek() (r rune, err error) {
+	r, err = l.read()
+	if err == nil {
+		// TODO just quit on error?
+		// l.read() gave us the right values anyway
+		l.unget()
+	}
+	return
+}
+
+func (l *FileLexer) getline() error {
+	line, err := l.File.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	l.inputLine = line
+	l.tokStart = 0
+	l.tokEnd = 0
+	l.runeLen = 0
+	return nil
+}
 
 type Lexer struct {
 	files		 []*FileLexer
 	curfile	*FileLexer		// for simplifying the below code
-	Errors	uint64
 }
 
 func (l *Lexer) Lex(tok *yySymType) int {
@@ -64,11 +127,7 @@ func (l *Lexer) Lex(tok *yySymType) int {
 
 func (l *Lexer) Error(e string) {
 	if len(l.files) > 0 {
-		cf := l.curfile
-		fmt.Fprintf(os.Stderr,
-			"%s:%d %s\n",
-			cf.Filename, cf.Lineno, e)
-		l.Errors++
+		l.curfile.Error(e)
 		return
 	}
 	POTENTIAL_BUG(
