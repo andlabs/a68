@@ -1,0 +1,13 @@
+setmemresloc(address)
+setmemreslimit(address)
+memresb()
+memresw()
+memresl()
+memresn(n)
+memresloc()
+	memory reserve functions
+
+will need a parser hook but
+filesize(string)
+	get the size of a file
+	TODO fatal or -1 on error?

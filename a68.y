@@ -15,7 +15,7 @@ package main
 %left AND
 %left EQ NE '<' LE '>' GE
 %left '+' '-' '|' '^'
-%left '*' '/' '%' '&' LSH RSH
+%left '*' '/' MOD '&' LSH RSH
 %left UMINUS '~' '!'
 
 %%
@@ -78,12 +78,13 @@ expression:
 	|	NUMBER
 	|	CHARACTER
 	|	'(' expression ')'
+	|	FUNCTION_NAME '(' ')'
 	|	FUNCTION_NAME '(' exprlist ')'
 	|	expression '+' expression
 	|	expression '-' expression
 	|	expression '*' expression
 	|	expression '/' expression
-	|	expression '%' expression
+	|	expression MOD expression
 	|	expression '&' expression
 	|	expression '|' expression
 	|	expression '^' expression
