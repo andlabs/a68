@@ -109,7 +109,7 @@ expression:
 
 data_definition:
 		DC_B bytedatalist
-		DC_W exprlist
+	|	DC_W exprlist
 	|	DC_L exprlist
 	|	DCB ex_size expression ',' expression
 	|	DCTO ex_size expression ',' expression
