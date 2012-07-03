@@ -97,4 +97,9 @@ var Opcodes = [...]Opcode{
 	{ "movep", "wl", "d*$", "d*$", o_movep },		// slight breach of the rules here, but adding * allows me to elide the 0 in the case of 0(a0) — it'll be handled properly during encoding
 	{ "moveq", " ", "#", "d", o_moveq },
 	// TODO muls and mulu suffixes?
+	{ "nbcd", " ", " ", "d*+-$%wl", o_nbcd },
+	{ "neg", "bwl", " ", "d*+-$%wl", o_neg },
+	{ "negx", "bwl", " ", "d*+-$%wl", o_negx },
+	{ "nop", " ", " ", " ", o_nop },
+	{ "not", "bwl", " ", "d*+-$%wl", o_not },
 }
