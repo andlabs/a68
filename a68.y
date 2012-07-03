@@ -144,6 +144,7 @@ assignment:
 
 varassign:
 		IDENT '=' expression
+	|	VARIABLE '=' expression
 	;
 
 directive:
