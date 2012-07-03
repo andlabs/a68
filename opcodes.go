@@ -102,4 +102,14 @@ var Opcodes = [...]Opcode{
 	{ "negx", "bwl", " ", "d*+-$%wl", o_negx },
 	{ "nop", " ", " ", " ", o_nop },
 	{ "not", "bwl", " ", "d*+-$%wl", o_not },
+	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
+	{ "ori", " bwl", "#", "d*+-$%wlc", o_ori },
+	// newer CPUs: pack
+	{ "pea", " ", " ", "*$%^&wl", o_pea },
+	// TODO rol/ror/roxl/roxr <ea> suffixes?
+	// newer CPUs: rtd, rtm
+	{ "rtr", " ", " ", " ", o_rtr },
+	{ "rts", " ", " ", " ", o_rts },
+	{ "sbcd", " ", "d-", "d-", o_sbcd },
+	// TODO Scc
 }
