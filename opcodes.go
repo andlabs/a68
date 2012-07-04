@@ -112,4 +112,17 @@ var Opcodes = [...]Opcode{
 	{ "rts", " ", " ", " ", o_rts },
 	{ "sbcd", " ", "d-", "d-", o_sbcd },
 	// TODO Scc
+	{ "sub", "bwl", "da*+-$%^&wl#", "d*+-$%wl", o_sub },
+	{ "suba", "wl", "da*+-$%^&wl#", "a", o_suba },
+	{ "subi", "bwl", "#", "d*+-$%wl", o_subi },
+	{ "subq", "bwl", "#", "da*+-$%wl", o_subq },
+	{ "subx", "bwl", "d-", "d-", o_subx },
+	{ "swap", " ", " ", "d", o_swap },
+	{ "tas", " ", " ", "d*+-$%wl", o_tas },		// yeah, tas on a data register is legal; I have no idea why
+	{ "trap", " ", " ", "#", o_trap },
+	// newer CPUs: TRAPcc
+	{ "trapv", " ", " ", " ", o_trapv },
+	{ "tst", "bwl", " ", "da*+-$%^&wl#", o_tst },
+	{ "unlk", " ", " ", "a", o_unlk },
+	// newer CPUs: unpk
 }
