@@ -30,6 +30,7 @@ import (
 		c		ccr
 		s		sr
 		m		movem register list
+		u		usp
 	Generator - a function that, when called, will actually generate the given opcode
 
 	For branching instructions, .w and .l are treated identically. I might need to think of a way to prevent saying
@@ -55,7 +56,7 @@ var Opcodes = [...]Opcode{
 	{ "addq", "bwl", "#", "da*+-$%wl", o_addq },
 	{ "addx", "bwl", "d-", "d-", o_addx },
 	{ "and", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_and },
-	{ "andi", " bwl", "#", "d*+-$%wlc", o_andi },
+	{ "andi", " bwl", "#", "d*+-$%wlcs", o_andi },
 //	{ "asl", " bwl", " d#", "d*+-$%wl", o_asl },
 //	{ "asr", " bwl", " d#", "d*+-$%wl", o_asr },
 	// TODO asl/asr <ea> suffixes?
@@ -70,29 +71,29 @@ var Opcodes = [...]Opcode{
 	[ "btst", " ", "d#", "d*+-$%^&wl#", o_btst },
 	// newer CPUs: callm, cas, cas2
 	// TODO chk suffixes?
-	// newer CPUs: chk2
+	// newer CPUs: chk2, cinv
 	{ "clr", "bwl", " ", "d*+-$%wl", o_clr },
 	{ "cmp", "bwl", "da*+-$%^&wl#", "d", o_cmp },
 	{ "cmpa", "wl", "da*+-$%^&wl#", "a", o_cmpa },
 	{ "cmpi", "bwl", "#", "d*+-$%^&wl", o_cmpi },
 	{ "cmpm", "bwl", "+", "+", o_cmpm },
-	// newer CPUs: cmp2, cpBcc, cpDBcc cpGEN, cpScc, cpTRAPcc
+	// newer CPUs: cmp2, cpBcc, cpDBcc cpGEN, cpRESTORE, cpSAVE, cpScc, cpTRAPcc, cpush
 	// TODO DBcc
 	// TODO divs and divu suffixes?
 	{ "eor", "bwl", "d", "d*+-$%wl", o_eor },
-	{ "eori", " bwl", "#", "d*+-$%wlc", o_eori },
+	{ "eori", " bwl", "#", "d*+-$%wlcs", o_eori },
 	{ "exg", " ", "da", "da", o_exg },
 	{ "ext", "wl", " ", "d", o_ext },
-	// newer CPUs: extb
+	// newer CPUs: extb, frestore, fsave
 	{ "illegal", " ", " ", " ", o_illegal },
 	{ "jmp", " ", " ", "*$%^&wl", o_jmp },
 	{ "jsr", " ", " ", "*$%^&wl", o_jsr },
 	{ "lea", " ", "*$%^&wl", "a", o_lea },
 	// TODO link suffixes?
 	// TODO lsl/lsr <ea> suffixes?
-	{ "move", " bwl", "da*+-$%^&wl#s", "d*+-$%wlc", o_move },
+	{ "move", " bwl", "da*+-$%^&wl#su", "da*+-$%wlcsu", o_move },
 	{ "movea", "wl", "da*+-$%^&wl#", "a", o_movea },
-	// newer CPUs: move from ccr, move16
+	// newer CPUs: move from ccr, move from sr as a supervisor-only instruction, move16, movec, moves
 	{ "movem", "wl", "*+$%^&wlm", "*-$%wlm", o_movem },		// TODO add this to the parser, and then see if I need to add d/a modes to handle lists consiting of a single register
 	{ "movep", "wl", "d*$", "d*$", o_movep },		// slight breach of the rules here, but adding * allows me to elide the 0 in the case of 0(a0) — it'll be handled properly during encoding
 	{ "moveq", " ", "#", "d", o_moveq },
@@ -103,15 +104,20 @@ var Opcodes = [...]Opcode{
 	{ "nop", " ", " ", " ", o_nop },
 	{ "not", "bwl", " ", "d*+-$%wl", o_not },
 	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
-	{ "ori", " bwl", "#", "d*+-$%wlc", o_ori },
-	// newer CPUs: pack
+	{ "ori", " bwl", "#", "d*+-$%wlcs", o_ori },
+	// newer CPUs: pack, PBcc, PDBcc
 	{ "pea", " ", " ", "*$%^&wl", o_pea },
+	// newer CPUs: pflush, pflusha, pflushr, pflushs (and other pflush variants), pload, pmove, prestore, psave, PScc, ptest, PTRAPcc, pvalid
+	{ "reset", " ", " ", " ", o_reset },
 	// TODO rol/ror/roxl/roxr <ea> suffixes?
-	// newer CPUs: rtd, rtm
+	// newer CPUs: rtd
+	{ "rte", " ", " ", " ", o_rte },
+	// newer CPUs: rtm
 	{ "rtr", " ", " ", " ", o_rtr },
 	{ "rts", " ", " ", " ", o_rts },
 	{ "sbcd", " ", "d-", "d-", o_sbcd },
 	// TODO Scc
+	{ "stop", " ", " ", "#", o_stop },
 	{ "sub", "bwl", "da*+-$%^&wl#", "d*+-$%wl", o_sub },
 	{ "suba", "wl", "da*+-$%^&wl#", "a", o_suba },
 	{ "subi", "bwl", "#", "d*+-$%wl", o_subi },
@@ -125,4 +131,5 @@ var Opcodes = [...]Opcode{
 	{ "tst", "bwl", " ", "da*+-$%^&wl#", o_tst },
 	{ "unlk", " ", " ", "a", o_unlk },
 	// newer CPUs: unpk
+	// newer CPUs: floating-point instructions, CPU32 instructions
 }
