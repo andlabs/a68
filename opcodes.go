@@ -39,10 +39,12 @@ import (
 type Opcode struct {
 	Name		string
 	Suffixes		string
-	SrcType		string
-	DestType		string
+	SrcTypes		string
+	DestTypes	string
 	Generator		func(suffix string, src OpcodeArg, dest OpcodeArg) error
 }
+
+const AllOperandTypes = " da*+-$%^&wl#csmu"	// for sanity checking
 
 // GENERAL TODOs
 // allow things like add xxx,a0 -> adda xxx,a0 implicitly
@@ -132,4 +134,56 @@ var Opcodes = [...]Opcode{
 	{ "unlk", " ", " ", "a", o_unlk },
 	// newer CPUs: unpk
 	// newer CPUs: floating-point instructions, CPU32 instructions
+}
+
+func addOpcodes() {
+	for _, o := range Opcodes {
+		// sanity check; thanks to remy_o
+		if strings.Trim(o.Suffixes, " bwl") != "" {
+			FATAL_BUG("invalid suffix found in opcode %s\n",
+				o.Name)
+		}
+		if strings.Trim(o.SrcTypes, AllOperandTypes) != "" {
+			FATAL_BUG("invalid source operand type found in opcode %s\n",
+				o.Name)
+		}
+		if strings.Trim(o.DestTypes, AllOperandTypes) != "" {
+			FATAL_BUG("invalid destination operand type found in opcode %s\n",
+				o.Name)
+		}
+
+		for _, suffix := range o.Suffixes {
+			if suffix == ' ' {			// add suffixless
+				Symbols.Add(o.Name, OPCODE)
+			} else if suffix == 'b' {		// add both .b and .s
+				Symbols.Add(o.Name + ".b", OPCODE)
+				Symbols.Add(o.Name + ".s", OPCODE)
+			} else {
+				Symbols.Add(o.Name + "." + string(suffix), OPCODE)
+			}
+		}
+	}
+}
+
+func getOpcode(op string) Opcode {
+	parts := strings.Split(op, ".")
+
+	// sanity checks
+	if len(parts) > 2 {
+		FATAL_BUG("getOpcode(%q) split into more than two parts somehow\n",
+			op)
+	}
+	if len(parts) == 2 && strings.Trim(parts[1], "bswl") != "" {
+		FATAL_BUG("getOpcode(%q): invalid suffix %s somehow passed\n",
+			op, parts[1])
+	}
+
+	for _, o := range Opcodes {
+		if o.Name == parts[0] {
+			return o
+		}
+	}
+	FATAL_BUG("getOpcode(%q): opcode %s undefined but somehow passed\n",
+		op, parts[1])
+	panic("FATAL_BUG returned")			// required to compile
 }
