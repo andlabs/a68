@@ -67,9 +67,13 @@ indirect:
 		'(' ADDRESSREG ')'
 	|	'(' ADDRESSREG ',' DATAREG EX_WORD ')'
 	|	'(' ADDRESSREG ',' DATAREG EX_LONG ')'
+	|	'(' ADDRESSREG ',' ADDRESSREG EX_WORD ')'
+	|	'(' ADDRESSREG ',' ADDRESSREG EX_LONG ')'
 	|	'(' PC ')'
 	|	'(' PC ',' DATAREG EX_WORD ')'
 	|	'(' PC ',' DATAREG EX_LONG ')'
+	|	'(' PC ',' ADDRESSREG EX_WORD ')'
+	|	'(' PC ',' ADDRESSREG EX_LONG ')'
 	;
 
 expression:
