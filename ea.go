@@ -37,7 +37,6 @@ func d16_check(d16 uint32) {
 // d16(aN), d16(pc), (xxx).w
 func mk_do_d16(o Operand) func() {
 	return func() {
-		WriteWord(0)
 		if o.Expr.CanEavluateNow() {
 			res := o.Expr.Evaluate()
 			if d16_check(res) == true {
@@ -47,25 +46,37 @@ func mk_do_d16(o Operand) func() {
 			}
 		} else {
 			pos := ResWord()
-			AddLaterExpr(pos, o.Expr)
+			AddLaterExpr(pos, o.Expr, d16_check)
 		}
 	}
 }
 
 // d8(aN,[da]N.[wl]), d8(pc,[da]N.[wl])
-func mk_do_d16(o Operand) func() {
-	// TODO
+func mk_do_d8(o Operand) func() {
 	return func() {
+		if o.IndexRegAddress {
+			WriteBits(1)
+		} else {
+			WriteBits(0)
+		}
+		WriteRegNum(o.IndexReg)
+		if o.IndexRegLong {
+			WriteBits(1)
+		} else {
+			WriteBits(0)
+		}
+		WriteBits(0, 0)			// scale
+		WriteBits(0)
 		if o.Expr.CanEavluateNow() {
 			res := o.Expr.Evaluate()
-			if d16_check(res) == true {
-				WriteWord(res)
+			if d8_check(res) == true {
+				WriteByte(res)
 			} else {
-				WriteWord(0)		// just to be safe
+				WriteByte(0)		// just to be safe
 			}
 		} else {
-			pos := ResWord()
-			AddLaterExpr(pos, o.Expr)
+			pos := ResByte()
+			AddLaterExpr(pos, o.Expr, d8_check)
 		}
 	}
 }
@@ -77,7 +88,7 @@ func mk_do_d32(o Operand) func() {
 			WriteLong(o.Expr.Evaluate())
 		} else {
 			pos := ResLong()
-			AddLaterExpr(pos, o.Expr)
+			AddLaterExpr(pos, o.Expr, nil)
 		}
 	}
 }

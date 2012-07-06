@@ -53,6 +53,15 @@ func WriteLong(l uint32) {
 	WriteWord(uint16(w & 0xFFFF))
 }
 
+func ResByte() int64 {
+	pos := OutBits.Pos()
+	if x == -1 {			// sanity check
+		FATAL_BUG("attempted to reserve space for a byte in the middle of a byte")
+	}
+	WriteByte(0)
+	return pos
+}
+
 func ResWord() int64 {
 	pos := OutBits.Pos()
 	if x == -1 {			// sanity check
