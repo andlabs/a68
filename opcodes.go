@@ -41,7 +41,7 @@ type Opcode struct {
 	Suffixes		string
 	SrcTypes		string
 	DestTypes	string
-	Generator		func(suffix string, src Operand, dest Operand) error
+	Generator		func(suffix rune, src Operand, dest Operand) error
 }
 
 const AllOperandTypes = " da*+-$%^&wl#csmu"	// for sanity checking

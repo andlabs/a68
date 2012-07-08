@@ -18,6 +18,8 @@ package main
 	later-evaluation list if needed.
 */
 
+// TODO split ALL of this out into its own file since WriteImmediate in output.go uses it
+
 func d8_check(d8 uint32) {
 	if d8 > 0xFF {
 		// TODO report error
@@ -143,4 +145,12 @@ func WriteEA(o Operand) func() {
 			o.Type)	// TODO convert to string?
 	}
 	return nil
+}
+
+// shorthand
+func WriteEANow(o Operand) {
+	f := WriteEA(o)
+	if f != nil {
+		f()
+	}
 }
