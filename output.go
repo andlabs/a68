@@ -91,20 +91,3 @@ func WriteRegNum(num int) {
 		num >> 1,
 		num & 1)
 }
-
-func WriteImmediate(s Operand, suffix rune) {
-	if s.Type != '#' {		// sanity check
-		// TODO write the operand?
-		FATAL_BUG("attempted to write non-immediate in WriteImmediate")
-	}
-	switch suffix {
-	case 'b':
-		return mk_do_d8(s)
-	case 'w':
-		return mk_do_d16(s)
-	case 'l':
-		return mk_do_d32(s)
-	}
-	FATAL_BUG("attempted to write immediate with invalid suffix \'%c\'", suffix)
-	panic("FATAL_BUG returned")
-}

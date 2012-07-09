@@ -18,43 +18,8 @@ package main
 	later-evaluation list if needed.
 */
 
-// TODO split ALL of this out into its own file since WriteImmediate in output.go uses it
-
-func d8_check(d8 uint32) {
-	if d8 > 0xFF {
-		// TODO report error
-		return false
-	}
-	return true
-}
-
-func d16_check(d16 uint32) {
-	if uint32 > 0xFFFF {
-		// TODO report error
-		return false
-	}
-	return true
-}
-
-// d16(aN), d16(pc), (xxx).w
-func mk_do_d16(o Operand) func() {
-	return func() {
-		if o.Expr.CanEavluateNow() {
-			res := o.Expr.Evaluate()
-			if d16_check(res) == true {
-				WriteWord(res)
-			} else {
-				WriteWord(0)		// just to be safe
-			}
-		} else {
-			pos := ResWord()
-			AddLaterExpr(pos, o.Expr, d16_check)
-		}
-	}
-}
-
-// d8(aN,[da]N.[wl]), d8(pc,[da]N.[wl])
-func mk_do_d8(o Operand) func() {
+// d8(aN,[da]N.[wl]), d8(pc,[da]N.[wl]) - these require special handling that the other modes do not, using the Brief Extension Word(correct phrase?) format
+func mk_ea_d8(o Operand) func() {
 	return func() {
 		if o.IndexRegAddress {
 			WriteBits(1)
@@ -83,18 +48,6 @@ func mk_do_d8(o Operand) func() {
 	}
 }
 
-// (xxx).l, #xxx
-func mk_do_d32(o Operand) func() {
-	return func() {
-		if o.Expr.CanEavluateNow() {
-			WriteLong(o.Expr.Evaluate())
-		} else {
-			pos := ResLong()
-			AddLaterExpr(pos, o.Expr, nil)
-		}
-	}
-}
-
 func WriteEA(o Operand) func() {
 	switch o.Type {
 	case 'd':			// dN
@@ -115,31 +68,31 @@ func WriteEA(o Operand) func() {
 	case '$':			// d16(aN)
 		WriteBits(1, 0, 1)
 		WriteRegNum(o.Reg)
-		return mk_do_d16(o)
+		return WriteImmed_16(o)
 	case ''%':			// d8(aN,dN.w/.l)
 		WriteBits(1, 1, 0)
 		WriteRegNum(o.Reg)
-		return mk_do_d8(o)
+		return mk_ea_d8(o)
 	case 'w':			// (xxx).w
 		WriteBits(1, 1, 1)
 		WriteBits(0, 0, 0)
-		return mk_do_d16(o)
+		return WriteImmed_16(o)
 	case 'l':			// (xxx).l
 		WriteBits(1, 1, 1)
 		WriteBits(0, 0, 1)
-		return mk_do_d32(o)
+		return WriteImmed_32(o)
 	case '#':			// #xxx
 		WriteBits(1, 1, 1)
 		WriteBits(1, 0, 0)
-		return mk_do_d32(o)
+		return WriteImmed_32(o)
 	case '^':			// d16(pc)
 		WriteBits(1, 1, 1)
 		WriteBits(0, 1, 0)
-		return mk_do_d16(o)
+		return WriteImmed_16(o)
 	case '&':			// d8(pc,dN.w/.l)
 		WriteBits(1, 1, 1)
 		WriteBits(0, 1, 1)
-		return mk_do_d8(o)
+		return mk_ea_d8(o)
 	default:
 		FATAL_BUG("invalid suffix type %c passed to write effective address",
 			o.Type)	// TODO convert to string?
