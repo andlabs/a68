@@ -185,7 +185,7 @@ func lex_next(l *FileLexer) lexState {
 		return lex_hexNumber
 	case unicode.IsLetter(c) || c == '_' || c == '.':
 		l.unget()
-		return hex_ident
+		return lex_ident
 	case '\'':
 		l.ignore()
 		return lex_character
@@ -272,7 +272,7 @@ func getStringCharacter(l *FileLexer) (r rune, isEscaped bool) {
 	}
 	return
 
-func hex_character(l *FileLexer) lexState {
+func lex_character(l *FileLexer) lexState {
 	var count uint64
 
 	// TODO worry about the length
@@ -302,7 +302,7 @@ func hex_character(l *FileLexer) lexState {
 	return lex_next
 }
 
-func hex_string(l *FileLexer) lexState {
+func lex_string(l *FileLexer) lexState {
 	for {
 		r, isExcaped := getStringCharacter(l)
 		if r == lexEOF {
