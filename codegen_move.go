@@ -49,7 +49,7 @@ func _move_sr_ea(suffix rune, dest Operand) error {
 	WriteBits(0, 1, 0, 0)
 	WriteBits(0, 0, 0, 0)
 	WriteBits(1, 1)
-	WriteEANow(src)
+	WriteEANow(dest)
 	return nil
 }
 
