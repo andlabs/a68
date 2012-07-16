@@ -2,6 +2,7 @@
 package main
 
 import (
+	"strings"
 	// ...
 )
 
@@ -186,4 +187,10 @@ func getOpcode(op string) Opcode {
 	FATAL_BUG("getOpcode(%q): opcode %s undefined but somehow passed\n",
 		op, parts[1])
 	panic("FATAL_BUG returned")			// required to compile
+}
+
+// alternate naming for clarity
+func addressingModeValid(type rune, valid string) bool {
+	// TODO add a sanity check here
+	return strings.ContainsRune(valid, type)
 }
