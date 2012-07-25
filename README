@@ -1,3 +1,10 @@
-Won't build; I just decided to put it up in the state it is now for the heck of it.
+This won't build yet; I just decided to put it up in the state it is now for the heck of it.
 
-The goal is simple: be a MC68000 assembler that doesn't suck. It'll probably be the first assembler period that doesn't enforce whitespace restrictions.
+The goal is simple: be a MC68000 assembler that doesn't suck. It'll probably be the first assembler period that doesn't enforce whitespace restrictions; instead, statements are delimited by :: (inserted by the lexer at the end of a line). It will have a somewhat different macro syntax to other assemblers. It requires opcode suffixes except in few situations. It assembles in a single pass. Temporary labels + and - are provided, but are local instead of global.
+
+There was probably a better way I could have built this program up, or I could be testing some modules now rather than later, but eh, I'll worry about that the next time I touch the code.
+
+Suggestions are welcome.
+
+Pietro Gagliardi
+pietro10@mac.com
