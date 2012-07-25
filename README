@@ -1,0 +1,3 @@
+Won't build; I just decided to put it up in the state it is now for the heck of it.
+
+The goal is simple: be a MC68000 assembler that doesn't suck. It'll probably be the first assembler period that doesn't enforce whitespace restrictions.
