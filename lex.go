@@ -165,7 +165,7 @@ func lex_next(l *FileLexer) lexState {
 			l.lastTok = lexNoC
 		}
 		return lex_next
-	case ';':				// comment; eat line
+	case c == ';':			// comment; eat line
 		for {
 			c = l.read()
 			if c == '\n' {
@@ -181,32 +181,32 @@ func lex_next(l *FileLexer) lexState {
 	case '0' <= c && c <= '9':
 		l.unget()
 		return lex_decimalNumber
-	case '%':
+	case c == '%':
 		// keep the % in the input; we read it out in the expression evaluation step
 		return lex_binaryNumber
-	case '$':
+	case c == '$':
 		// keep the $ in the input; we read it out in the expression evaluation step
 		return lex_hexNumber
 	case unicode.IsLetter(c) || c == '_' || c == '.':
 		l.unget()
 		return lex_ident
-	case '\'':
+	case c == '\'':
 		l.ignore()
 		return lex_character
-	case '"':
+	case c == '"':
 		l.ignore()
 		return lex_string
-	case ':':					// : or :: (terminator)
+	case c == ':':				// : or :: (terminator)
 		l.acceptAndEmit(':', TERM, ':')
-	case '&':					// & or &&
+	case c == '&':				// & or &&
 		l.acceptAndEmit('&', AND, '&')
-	case '|':					// | or ||
+	case c == '|':				// | or ||
 		l.acceptAndEmit('|', OR, '|')
-	case '=':					// = or ==
+	case c == '=':				// = or ==
 		l.acceptAndEmit('=', EQ, '=')
-	case '!':					// ! or !=
+	case c == '!':				// ! or !=
 		l.acceptAndEmit('=', NE, '!')
-	case '<':					// < or <= or <<
+	case c == '<':				// < or <= or <<
 		if l.accept('=') {
 			l.emit(LE)
 		} else if l.accept('<') {
@@ -214,7 +214,7 @@ func lex_next(l *FileLexer) lexState {
 		} else {
 			l.emit('<')
 		}
-	case '>':					// > or >= or >>
+	case c == '>':				// > or >= or >>
 		if l.accept('=') {
 			l.emit(GE)
 		} else if l.accept('>') {
