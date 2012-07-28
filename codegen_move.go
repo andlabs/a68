@@ -7,7 +7,7 @@ import (
 
 // move <ea>,<ea>
 func _move_ea_ea(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 1 },		// ...wait, what?!
 		'w':	{ 1, 1 },
 		'l':	{ 1, 0 },
