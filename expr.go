@@ -69,6 +69,7 @@ func (e *Expression) Concatenate(e2 *Expression) {
 
 func (e Expression) CanEvaluateNow() bool {
 	// TODO
+	return true
 }
 
 type eval_stack []uint32
