@@ -83,11 +83,16 @@ func (l *FileLexer) Error(e string) {
 	nErrors++
 }
 
+// shorthand
+func (l *FileLexer) what() string {
+	return l.inputLine[l.tokStart:l.readPos]
+}
+
 func (l *FileLexer) emit(toktype int) {
-log.Printf("** emit %v: %q\n", toktype, l.inputLine[l.tokStart:l.readPos])
+log.Printf("** emit %v: %q\n", toktype, l.what())
 	l.Tokens <- yySymType{
 		toktype:	toktype,
-		value:	l.inputLine[l.tokStart:l.readPos],
+		value:	l.what(),
 	}
 	l.lastTok = toktype
 	l.tokStart = l.readPos		// advance
@@ -278,8 +283,13 @@ func lex_ident(l *FileLexer) lexState {
 		}
 	}
 	l.unget()
-	// TODO look up in symbol table
-	l.emit(IDENT)
+	// TODO look up in local symbol table?
+	s := Symbols.Get(l.what())
+	if s != nil {
+		l.emit(s.Type)
+	} else {
+		l.emit(IDENT)
+	}
 	return lex_next
 }
 

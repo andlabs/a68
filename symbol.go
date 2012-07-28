@@ -57,6 +57,7 @@ func (s *SymbolTable) Add(name string, stype int) *Symbol {
 		Type:	stype,
 	}
 	s.m[name] = newSym
+fmt.Println("added ", newSym)
 	return newSym
 }
 
