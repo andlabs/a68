@@ -74,6 +74,6 @@ func (s SymbolTable) Get(name string) *Symbol {
 }
 
 func (s Symbol) String() string {
-	return fmt.Sprintf("%s type %s number value $%X\n",
+	return fmt.Sprintf("%s type %s number value $%X",
 		s.Name, validSymbolTypes[s.Type], s.Value)
 }
