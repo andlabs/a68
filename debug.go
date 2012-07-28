@@ -21,7 +21,7 @@ func _bug(mode string, format string, args ...interface{}) {
 
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Stack trace: ")
-	fmt.Fprintf(out, "%s\n", debug.Stack())
+	out.Write(debug.Stack())		// this is what debug.PrintStack() does, and it appears that debug.Stack() writes a newline at the end
 
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Lexer state: ")
