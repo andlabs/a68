@@ -373,9 +373,11 @@ func (l *Lexer) Lex(tok *yySymType) int {
 		return -1
 	}
 	*tok = <-l.curfile.Tokens
+log.Printf("got token: %#v\n", tok)
 	if tok.toktype == -1 {	// EOF
 		l.EndFile()
 		if len(l.files) <= 0 {	// no more files
+log.Println("no more files; returning -1")
 			return -1
 		}
 		return l.Lex(tok)
@@ -411,12 +413,16 @@ func (l *Lexer) Open(s string) error {
 }
 
 func (l *Lexer) EndFile() {
+	if l.curfile == nil || len(l.files) == 0 {
+		FATAL_BUG("attempted to Lexer.EndFile() with no files open")
+	}
 	close(l.curfile.Tokens)		// TODO should we really do this here?
 	l.curfile.Closer.Close()
-	l.files = l.files[:len(l.files) - 2]
-	if len(l.files) >= 0 {
+	if len(l.files) > 1 {
+		l.files = l.files[:len(l.files) - 1]
 		l.curfile = l.files[len(l.files) - 1]
 	} else {
+		l.files = l.files[0:0]		// turn into nil slice (TOOD better way?)
 		l.curfile = nil
 	}
 }
