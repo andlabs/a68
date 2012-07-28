@@ -2,7 +2,7 @@
 package main
 
 import (
-	"fmt"
+//	"fmt"
 )
 
 // eor dN,<ea>
@@ -68,6 +68,6 @@ func o_ext(suffix rune, src Operand, dest Operand) error {
 	WriteBits(opmodes[suffix]...)
 	WriteBits(0, 0)
 	WriteBits(0)
-	WriteRegNum(dst.Reg)
+	WriteRegNum(dest.Reg)
 	return nil
 }

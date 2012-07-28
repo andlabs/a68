@@ -47,7 +47,7 @@ func _move_sr_ea(suffix rune, dest Operand) error {
 	if suffix != ' ' {
 		return fmt.Errorf("move from sr cannot have suffix")
 	}
-	if !addressingModeValid(src.Type, "d*+-$%wl") {
+	if !addressingModeValid(dest.Type, "d*+-$%wl") {
 		return fmt.Errorf("cannot move sr to aN/(pc)/immediate/ccr/sr/usp")
 	}
 	WriteBits(0, 1, 0, 0)
