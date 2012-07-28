@@ -14,6 +14,7 @@ var validSymbolTypes = map[int]string{
 	LABEL:				"label",
 	UNDEFINED_LABEL:		"undefined (forward) label",
 	EQUATE:				"equate",
+	OPCODE:				"opcode",
 }
 
 type Symbol struct {
