@@ -103,6 +103,8 @@ func (l *FileLexer) getline() error {
 }
 
 func (l *FileLexer) read() rune {
+	var r rune
+
 	if l.readPos >= len(l.inputLine) {
 		err := l.getline()
 		if err == io.EOF {
@@ -110,7 +112,7 @@ func (l *FileLexer) read() rune {
 			return lexEOF
 		}
 	}
-	r, l.runeLen := utf8.DecodeRuneInString(len[i.readPos:])
+	r, l.runeLen = utf8.DecodeRuneInString(l.inputLine[l.readPos:])
 	l.readPos += l.runeLen
 	// tokStart is updated either when we emit a token or when we ignore one
 	return r
@@ -171,7 +173,7 @@ func lex_next(l *FileLexer) lexState {
 			l.ignore()
 		}
 		return lex_next
-	case unicode.IsSpace(c);
+	case unicode.IsSpace(c):
 		l.ignore()
 		return lex_next
 	case '0' <= c && c <= '9':
@@ -259,7 +261,7 @@ func lex_ident(l *FileLexer) lexState {
 }
 
 func getStringCharacter(l *FileLexer) (r rune, isEscaped bool) {
-	r := l.read()
+	r = l.read()
 	if r == '\\' {					// TODO have things like \u?
 		isEscaped = true
 		r = l.read()
@@ -271,6 +273,7 @@ func getStringCharacter(l *FileLexer) (r rune, isEscaped bool) {
 		// default is to take that character literally
 	}
 	return
+}
 
 func lex_character(l *FileLexer) lexState {
 	var count uint64
@@ -309,7 +312,7 @@ func lex_string(l *FileLexer) lexState {
 			l.Error("EOF in string literal")
 			return lex_next		// TODO
 		}
-		if !isEscaped && r == '\"' {
+		if !isEscaped && r == '"' {
 			l.unget()
 			break
 		}
@@ -336,15 +339,15 @@ func (l *Lexer) Lex(tok *yySymType) int {
 			"attempted to lex before any files are open")
 		return -1
 	}
-	*tok := <-l.curfile.Tokens
-	if tok.type == -1 {		// EOF
+	*tok = <-l.curfile.Tokens
+	if tok.toktype == -1 {	// EOF
 		l.EndFile()
 		if len(l.files) <= 0 {	// no more files
 			return -1
 		}
 		return l.Lex(lval)
 	}
-	return tok.type
+	return tok.toktype
 }
 
 func (l *Lexer) Error(e string) {
@@ -366,7 +369,7 @@ func (l *Lexer) Open(s string) error {
 	l.files = append(l.files, &FileLexer{
 		Filename:		s,
 		File:			bufio.NewReader(f),
-		Tokens:		make(chan yySymType)
+		Tokens:		make(chan yySymType),
 	})
 	l.curfile = l.files[len(l.files) - 1]
 	go l.curfile.Run()
