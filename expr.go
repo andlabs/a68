@@ -39,7 +39,7 @@ type exprop struct {
 }
 
 type Expression []exprop
-const EBUFSIZ 500			// TODO meter this for optimal memory use?
+const EBUFSIZ = 500			// TODO meter this for optimal memory use?
 
 func NewExpr(o ExprOpcode, v string) Expression {
 	e := make(Expression, 0, EBUFSIZ)

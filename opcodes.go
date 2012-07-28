@@ -71,7 +71,7 @@ var Opcodes = [...]Opcode{
 	{ "bra", "bw", " ", "wl", o_bra },
 	{ "bset", " ", "d#", "d*+-$%wl", o_bset },
 	{ "bsr", "bw", " ", "wl", o_bsr },
-	[ "btst", " ", "d#", "d*+-$%^&wl#", o_btst },
+	{ "btst", " ", "d#", "d*+-$%^&wl#", o_btst },
 	// newer CPUs: callm, cas, cas2
 	// TODO chk suffixes?
 	// newer CPUs: chk2, cinv
@@ -190,7 +190,7 @@ func getOpcode(op string) Opcode {
 }
 
 // alternate naming for clarity
-func addressingModeValid(type rune, valid string) bool {
+func addressingModeValid(atype rune, valid string) bool {
 	// TODO add a sanity check here
-	return strings.ContainsRune(valid, type)
+	return strings.ContainsRune(valid, atype)
 }

@@ -69,7 +69,7 @@ func WriteEA(o Operand) func() {
 		WriteBits(1, 0, 1)
 		WriteRegNum(o.Reg)
 		return WriteImmed_16(o)
-	case ''%':			// d8(aN,dN.w/.l)
+	case '%':			// d8(aN,dN.w/.l)
 		WriteBits(1, 1, 0)
 		WriteRegNum(o.Reg)
 		return mk_ea_d8(o)

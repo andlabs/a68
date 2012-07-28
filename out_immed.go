@@ -75,6 +75,6 @@ func WriteImmediate(s Operand, suffix rune) {
 	case 'l':
 		return WriteImmed_32(s)
 	}
-	FATAL_BUG("attempted to write immediate with invalid suffix \'%c\'", suffix)
+	FATAL_BUG("attempted to write immediate with invalid suffix '%c'", suffix)
 	panic("FATAL_BUG returned")
 }

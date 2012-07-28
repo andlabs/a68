@@ -6,7 +6,7 @@ import (
 )
 
 // probably need to think of a better name
-var validSymbolTypes := map[int]string{
+var validSymbolTypes = map[int]string{
 	ENCODING_NAME:		"encoding",
 	FUNCTION_NAME:		"function",
 	VARAIBLE:			"variable",
