@@ -1,8 +1,8 @@
 // 8 july 2012
 package main
 
-// this function is also used by out_ea.go for its mk_ea_d8() function
-func d8_check(d8 uint32) {
+// this function is also used by out_ea.go for its mk_ea_d8() function (and probably needs a differnet name for that case)
+func d8_check(d8 uint32) bool {
 	if d8 > 0xFF {
 		// TODO report error
 		return false
@@ -10,7 +10,7 @@ func d8_check(d8 uint32) {
 	return true
 }
 
-func d16_check(d16 uint32) {
+func d16_check(d16 uint32) bool {
 	if uint32 > 0xFFFF {
 		// TODO report error
 		return false

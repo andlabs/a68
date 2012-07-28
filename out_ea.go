@@ -34,12 +34,12 @@ func mk_ea_d8(o Operand) func() {
 		}
 		WriteBits(0, 0)			// scale
 		WriteBits(0)
-		if o.Expr.CanEavluateNow() {
+		if o.Expr.CanEvaluateNow() {
 			res := o.Expr.Evaluate()
 			if d8_check(res) == true {
-				WriteByte(res)
+				WriteByte(byte(res))
 			} else {
-				WriteByte(0)		// just to be safe
+				WriteByte(0)			// just to be safe
 			}
 		} else {
 			pos := ResByte()
@@ -47,6 +47,9 @@ func mk_ea_d8(o Operand) func() {
 		}
 	}
 }
+
+// let's just put this here for now
+func AddLaterExpr(...interface{}){panic("TODO AddLaterExpr")}
 
 func WriteEA(o Operand) func() {
 	switch o.Type {
