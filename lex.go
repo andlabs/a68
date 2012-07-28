@@ -84,6 +84,7 @@ func (l *FileLexer) Error(e string) {
 }
 
 func (l *FileLexer) emit(toktype int) {
+log.Printf("** emit %v: %q\n", toktype, l.inputLine[l.tokStart:l.readPos])
 	l.Tokens <- yySymType{
 		toktype:	toktype,
 		value:	l.inputLine[l.tokStart:l.readPos],
