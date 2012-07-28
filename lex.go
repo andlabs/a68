@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 	"bufio"
 	"io"
+	"strings"
 	"log"
 
 	// Lexer
@@ -154,6 +155,19 @@ func (l *FileLexer) acceptAndEmit(r rune, ifSo int, ifNot int) {
 	}
 }
 
+func (l *FileLexer) acceptRun(chars string) bool {
+	found := false
+	for {
+		c := l.read()
+		if !strings.ContainsRune(chars, c) {
+			l.unget()
+			break
+		}
+		found = true
+	}
+	return found
+}
+
 func lex_next(l *FileLexer) lexState {
 	c := l.read()
 	switch {
@@ -232,19 +246,23 @@ func lex_next(l *FileLexer) lexState {
 }
 
 func lex_decimalNumber(l *FileLexer) lexState {
-	l.acceptRun("0123456789")
+	if !l.acceptRun("0123456789") {
+		FATAL_BUG("lex_decimalNumber somehow failed to read a number (the only way it can be called is if we know there's a number already)")
+	}
 	l.emit(NUMBER)
 	return lex_next
 }
 
 func lex_binaryNumber(l *FileLexer) lexState {
 	l.acceptRun("01")
+	// TODO handle error
 	l.emit(NUMBER)
 	return lex_next
 }
 
 func lex_hexNumber(l *FileLexer) lexState {
 	l.acceptRun("0123456789ABCDEFabcdef")
+	// TODO handle error
 	l.emit(NUMBER)
 	return lex_next
 }
