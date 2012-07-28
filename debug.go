@@ -76,6 +76,10 @@ func _bug(mode string, format string, args ...interface{}) {
 	} else {
 		fmt.Fprintln(out, "no output")
 	}
+	if OutBits.Pos() == -1 {
+		// TODO if I ever split bitwriter.go out into its own library, this will need to be changed!
+		fmt.Fprintf(out, "we are still inside a byte! bitCount = %d, curByte = $%02X\n", OutBits.bitCount, OutBits.curByte)
+	}
 
 	// TODO quit?
 	fmt.Fprintf(out, "==========\n")
