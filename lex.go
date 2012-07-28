@@ -6,6 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 	"bufio"
+	"io"
 	"log"
 
 	// Lexer
@@ -54,6 +55,7 @@ type FileLexer struct {
 	Filename	string
 	Lineno	uint64
 	File		*bufio.Reader
+	Closer	io.Closer
 	Tokens	chan yySymType
 	inputLine	string
 	tokStart	uint64
@@ -369,6 +371,7 @@ func (l *Lexer) Open(s string) error {
 	l.files = append(l.files, &FileLexer{
 		Filename:		s,
 		File:			bufio.NewReader(f),
+		Closer:		f,
 		Tokens:		make(chan yySymType),
 	})
 	l.curfile = l.files[len(l.files) - 1]
@@ -378,7 +381,7 @@ func (l *Lexer) Open(s string) error {
 
 func (l *Lexer) EndFile() {
 	close(l.curfile.Tokens)		// TODO should we really do this here?
-	l.curfile.File.Close()
+	l.curfile.Closer.Close()
 	l.files = l.files[:len(l.files) - 2]
 	if len(l.files) >= 0 {
 		l.curfile = l.files[len(l.files) - 1]
