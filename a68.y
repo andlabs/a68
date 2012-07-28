@@ -5,7 +5,7 @@ package main
 %start assembly
 
 %union {
-	type		int
+	toktype	int
 	value	string
 }
 

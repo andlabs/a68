@@ -79,7 +79,7 @@ func (l *FileLexer) Error(e string) {
 
 func (l *FileLexer) Emit(toktype int) {
 	l.Tokens <- yySymType{
-		type:		toktype,
+		tokype:	toktype,
 		value:	line[l.tokStart:l.readPos],
 	}
 	l.lastTok = toktype
