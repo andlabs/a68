@@ -16,5 +16,5 @@ func main() {
 		}
 	}
 	yyDebug = 100
-	yyParse(l)
+	yyParse(&l)
 }

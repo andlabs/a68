@@ -20,11 +20,14 @@ var nErrors uint64
 const (
 	lexEOF rune = utf8.MaxRune + 1 + iota
 	lexError
-	lexNoC			// for continuations
 )
 
+// a token that cannot mark a statement end is a "continuation token"
+// isCont is a generic value for a continuation token for immediately after we emit one
+const isCont = OR
+
+// and these are the continuation tokens
 var isContinuationToken = map[int]bool{
-	lexNoC:	true,
 	OR:		true,
 	AND:	true,
 	EQ:		true,
@@ -79,10 +82,10 @@ func (l *FileLexer) Error(e string) {
 	nErrors++
 }
 
-func (l *FileLexer) Emit(toktype int) {
+func (l *FileLexer) emit(toktype int) {
 	l.Tokens <- yySymType{
-		tokype:	toktype,
-		value:	line[l.tokStart:l.readPos],
+		toktype:	toktype,
+		value:	l.inputLine[l.tokStart:l.readPos],
 	}
 	l.lastTok = toktype
 	l.tokStart = l.readPos		// advance
@@ -99,22 +102,21 @@ func (l *FileLexer) getline() error {
 	}
 	l.inputLine = line
 	l.tokStart = 0
-	l.tokEnd = 0
+	l.readPos = 0
 	l.runeLen = 0
 	return nil
 }
 
 func (l *FileLexer) read() rune {
-	var r rune
-
-	if l.readPos >= len(l.inputLine) {
+	if l.readPos >= uint64(len(l.inputLine)) {
 		err := l.getline()
 		if err == io.EOF {
 			l.runeLen = 0			// don't unget an EOF
 			return lexEOF
 		}
 	}
-	r, l.runeLen = utf8.DecodeRuneInString(l.inputLine[l.readPos:])
+	r, rl := utf8.DecodeRuneInString(l.inputLine[l.readPos:])
+	l.runeLen = uint64(rl)
 	l.readPos += l.runeLen
 	// tokStart is updated either when we emit a token or when we ignore one
 	return r
@@ -146,9 +148,9 @@ func (l *FileLexer) accept(r rune) bool {
 
 func (l *FileLexer) acceptAndEmit(r rune, ifSo int, ifNot int) {
 	if l.accept(r) {
-		emit(ifSo)
+		l.emit(ifSo)
 	} else {
-		emit(ifNot)
+		l.emit(ifNot)
 	}
 }
 
@@ -162,7 +164,7 @@ func lex_next(l *FileLexer) lexState {
 		l.Lineno++
 		if !isContinuationToken[l.lastTok] {		// add a terminator unless it's nonsensical to do so
 			l.emit(TERM)
-			l.lastTok = lexNoC
+			l.lastTok = isCont
 		}
 		return lex_next
 	case c == ';':			// comment; eat line
@@ -224,26 +226,26 @@ func lex_next(l *FileLexer) lexState {
 		}
 	// TODO more multi-character tokens
 	default:
-		l.emit(c)
+		l.emit(int(c))
 	}
 	return lex_next			// TODO tail call optimize?
 }
 
 func lex_decimalNumber(l *FileLexer) lexState {
 	l.acceptRun("0123456789")
-	emit(NUMBER)
+	l.emit(NUMBER)
 	return lex_next
 }
 
 func lex_binaryNumber(l *FileLexer) lexState {
 	l.acceptRun("01")
-	emit(NUMBER)
+	l.emit(NUMBER)
 	return lex_next
 }
 
 func lex_hexNumber(l *FileLexer) lexState {
 	l.acceptRun("0123456789ABCDEFabcdef")
-	emit(NUMBER)
+	l.emit(NUMBER)
 	return lex_next
 }
 
@@ -258,7 +260,7 @@ func lex_ident(l *FileLexer) lexState {
 	}
 	l.unget()
 	// TODO look up in symbol table
-	emit(IDENT)
+	l.emit(IDENT)
 	return lex_next
 }
 
@@ -283,7 +285,7 @@ func lex_character(l *FileLexer) lexState {
 	// TODO worry about the length
 	// TODO worry about allowing Unicode (meaning we have to worry about character encodings and ugh; probably best to worry about the length later
 	for {
-		r, isExcaped := getStringCharacter(l)
+		r, isEscaped := getStringCharacter(l)
 		if r == lexEOF {
 			l.Error("EOF in character literal")
 			return lex_next		// TODO
@@ -302,14 +304,14 @@ func lex_character(l *FileLexer) lexState {
 		l.Error("character literal too long (max 4 characters)")
 		return lex_next			// TODO
 	}
-	emit(CHARACTER)
+	l.emit(CHARACTER)
 	l.read(); l.ignore()				// TODO handle closing '
 	return lex_next
 }
 
 func lex_string(l *FileLexer) lexState {
 	for {
-		r, isExcaped := getStringCharacter(l)
+		r, isEscaped := getStringCharacter(l)
 		if r == lexEOF {
 			l.Error("EOF in string literal")
 			return lex_next		// TODO
@@ -320,7 +322,7 @@ func lex_string(l *FileLexer) lexState {
 		}
 	}
 	// TODO should we handle empty strings?
-	emit(STRING)
+	l.emit(STRING)
 	l.read(); l.ignore()				// TODO handle closing "
 	return lex_next
 }
@@ -347,7 +349,7 @@ func (l *Lexer) Lex(tok *yySymType) int {
 		if len(l.files) <= 0 {	// no more files
 			return -1
 		}
-		return l.Lex(lval)
+		return l.Lex(tok)
 	}
 	return tok.toktype
 }

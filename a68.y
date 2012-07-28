@@ -1,6 +1,8 @@
 %{
 // 28 june 2012
 package main
+
+import "fmt"	// for some reason goyacc doesn't output this but the code it outputs uses package fmt
 %}
 %start assembly
 
