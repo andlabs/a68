@@ -3,13 +3,14 @@ package main
 
 import (
 	"strings"
+	"fmt"
 )
 
 // probably need to think of a better name
 var validSymbolTypes = map[int]string{
 	ENCODING_NAME:		"encoding",
 	FUNCTION_NAME:		"function",
-	VARAIBLE:			"variable",
+	VARIABLE:			"variable",
 	LABEL:				"label",
 	UNDEFINED_LABEL:		"undefined (forward) label",
 	EQUATE:				"equate",
