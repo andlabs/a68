@@ -51,7 +51,7 @@ func (e *Expression) Add(o ExprOpcode, v string) {
 	if len(*e) + 1 >= cap(*e) {
 		// reallocate more just in case we need to add more later
 		// grow linearly to keep memory use at a minimum
-		s2 = make([]exprop, len(*e), cap(*e) + EBUFSIZ)
+		s2 := make([]exprop, len(*e), cap(*e) + EBUFSIZ)
 		copy(s2, *e)
 		*e = s2
 	}
@@ -62,8 +62,8 @@ func (e *Expression) Add(o ExprOpcode, v string) {
 }
 
 func (e *Expression) Concatenate(e2 *Expression) {
-	for i := 0; i < len(e2); i++ {
-		e.Add((*e2)[i])
+	for i := 0; i < len(*e2); i++ {
+		e.Add((*e2)[i].opcode, (*e2)[i].arg)
 	}
 }
 
@@ -80,7 +80,7 @@ func newEvalStack() eval_stack {
 func (e *eval_stack) push(v uint32) {
 	if len(*e) + 1 >= cap(*e) {
 		// reallocate like above
-		s2 = make(eval_stack, len(*e), cap(*e) + EBUFSIZ)
+		s2 := make(eval_stack, len(*e), cap(*e) + EBUFSIZ)
 		copy(s2, *e)
 		*e = s2
 	}
@@ -91,7 +91,7 @@ func (e *eval_stack) pop() uint32 {
 	if len(*e) == 0 {
 		FATAL_BUG("pop from empty evaluation stack")
 	}
-	pos = len(*e) - 1
+	pos := len(*e) - 1
 	v := (*e)[pos]
 	*e = (*e)[:pos - 1]
 	return v
@@ -103,7 +103,7 @@ func (e Expression) Evaluate() uint32 {
 	for pc := 0; pc < len(e); pc++ {
 		switch e[pc].opcode {
 		case eNumber:
-			s.push(getNumber(e[pc].arg))
+//(TODO)			s.push(getNumber(e[pc].arg))
 		case eIdentifier:
 			// TODO
 		case eLocal:
