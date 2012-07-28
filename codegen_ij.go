@@ -2,7 +2,7 @@
 package main
 
 // illegal
-func o_illegal(suffix, Operand, Operand) error {
+func o_illegal(rune, Operand, Operand) error {
 	WriteBits(0, 1, 0, 0)
 	WriteBits(1, 0, 1, 0)
 	WriteBits(1, 1, 1, 1)

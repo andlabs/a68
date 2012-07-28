@@ -21,7 +21,7 @@ func o_eor(suffix rune, src Operand, dst Operand) error {
 // exg dN,dN
 // exg aN,aN
 // exg dN,aN
-func o_exg(suffix rune, src Opmode, dst Opmode) error {
+func o_exg(suffix rune, src Operand, dst Operand) error {
 	_ = suffix		// unused
 	WriteBits(1, 1, 0, 0)
 	switch {

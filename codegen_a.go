@@ -119,7 +119,7 @@ func o_addq(suffix rune, src Operand, dest Operand) error {
 	if !src.Expr.CanEvaluateNow() {
 		return fmt.Errorf("sorry, technical restrictions require arguments to addq be evaluatable at code generation time; this will be fixed later")
 	}
-	n := src.Expr.CanEvaluateNow()
+	n := src.Expr.Evaluate()
 	if n > 8 {
 		return fmt.Errorf("addq immediate argument must be in the range 0 <= n <= 8; received $%X", n)
 	}
