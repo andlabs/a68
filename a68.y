@@ -4,6 +4,11 @@ package main
 %}
 %start assembly
 
+%union {
+	type		int
+	value	string
+}
+
 %term IDENT NUMBER CHARACTER STRING
 %term ENCODING_NAME FUNCTION_NAME VARIABLE LABEL UNDEFINED_LABEL EQUATE
 %term OPCODE EX_WORD EX_LONG DC_B DC_W DC_L DCB DCTO EQU

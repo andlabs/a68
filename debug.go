@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"debug"
+	"runtime/debug"
 	"log"
 )
 
