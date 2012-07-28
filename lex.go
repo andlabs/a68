@@ -89,7 +89,6 @@ func (l *FileLexer) what() string {
 }
 
 func (l *FileLexer) emit(toktype int) {
-log.Printf("** emit %v: %q\n", toktype, l.what())
 	l.Tokens <- yySymType{
 		toktype:	toktype,
 		value:	l.what(),
@@ -373,11 +372,9 @@ func (l *Lexer) Lex(tok *yySymType) int {
 		return -1
 	}
 	*tok = <-l.curfile.Tokens
-log.Printf("got token: %#v\n", tok)
 	if tok.toktype == -1 {	// EOF
 		l.EndFile()
 		if len(l.files) <= 0 {	// no more files
-log.Println("no more files; returning -1")
 			return -1
 		}
 		return l.Lex(tok)
