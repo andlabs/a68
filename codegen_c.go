@@ -5,7 +5,7 @@ package main
 
 // clr <ea>
 func o_clr(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },
@@ -21,7 +21,7 @@ func o_clr(suffix rune, src Operand, dest Operand) error {
 
 // cmp <ea>,dN
 func o_cmp(suffix rune, src Operand, dest Operand) error {
-	opmodes := map[rune][3]byte{		// not Opmodes because there's only one setting
+	opmodes := map[rune][]byte{		// not Opmodes because there's only one setting
 		'b':	{ 0, 0, 0 },
 		'w':	{ 0, 0, 1 },
 		'l':	{ 0, 1, 0 },
@@ -40,7 +40,7 @@ func o_cmp(suffix rune, src Operand, dest Operand) error {
 
 // cmpa <ea>,aN
 func o_cmpa(suffix rune, src Operand, dest Operand) error {
-	opmodes := map[rune][3]byte{
+	opmodes := map[rune][]byte{
 		'w':	{ 0, 1, 1 },
 		'l':	{ 1, 1, 1 },
 	}
@@ -54,7 +54,7 @@ func o_cmpa(suffix rune, src Operand, dest Operand) error {
 
 // cmpi #xxx,<ea>
 func o_cmpi(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },
@@ -73,7 +73,7 @@ func o_cmpi(suffix rune, src Operand, dest Operand) error {
 
 // cmpm (aN)+,(aN)+
 func o_cmpm(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },

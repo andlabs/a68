@@ -13,7 +13,7 @@ type Operand struct {
 	IndexRegLong		bool
 }
 
-type Opmodes [2]map[rune][3]byte		// WriteBits(opmodes[read/write][suffix]...)
+type Opmodes [2]map[rune][]byte		// WriteBits(opmodes[read/write][suffix]...)
 
 // abcd dN,dN
 // abcd -(aN),-(aN)
@@ -86,7 +86,7 @@ func o_adda(suffix rune, src Operand, dest Operand) error {
 
 // addi #xxx,<ea>
 func o_addi(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },
@@ -105,7 +105,7 @@ func o_addi(suffix rune, src Operand, dest Operand) error {
 
 // addq #xxx,<ea>
 func o_addq(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },
@@ -137,7 +137,7 @@ func o_addq(suffix rune, src Operand, dest Operand) error {
 // addx dN,dN
 // addx -(aN),-(aN)
 func o_addx(suffix rune, src Operand, dest Operand) error {
-	sizes := map[rune][2]byte{
+	sizes := map[rune][]byte{
 		'b':	{ 0, 0 },
 		'w':	{ 0, 1 },
 		'l':	{ 1, 0 },

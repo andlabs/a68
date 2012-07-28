@@ -3,7 +3,7 @@ package main
 
 // eor dN,<ea>
 func o_eor(suffix rune, src Operand, dst Operand) error {
-	opmodes := map[rune][3]byte{
+	opmodes := map[rune][]byte{
 		'b':	{ 1, 0, 0 },
 		'w':	{ 1, 0, 1 },
 		'l':	{ 1, 1, 0 },
@@ -53,7 +53,7 @@ func o_exg(suffix rune, src Operand, dst Operand) error {
 // ext.w dN
 // ext.l dN
 func o_ext(suffix rune, src Operand, dest Operand) error {
-	opmodes := map[rune][3]byte{
+	opmodes := map[rune][]byte{
 		'w':	{ 0, 1, 0 },
 		'l':	{ 0, 1, 1 },
 	}
