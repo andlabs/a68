@@ -1,8 +1,12 @@
 // 15 july 2012
 package main
 
+import (
+	"fmt"
+)
+
 // eor dN,<ea>
-func o_eor(suffix rune, src Operand, dst Operand) error {
+func o_eor(suffix rune, src Operand, dest Operand) error {
 	opmodes := map[rune][]byte{
 		'b':	{ 1, 0, 0 },
 		'w':	{ 1, 0, 1 },
@@ -21,7 +25,7 @@ func o_eor(suffix rune, src Operand, dst Operand) error {
 // exg dN,dN
 // exg aN,aN
 // exg dN,aN
-func o_exg(suffix rune, src Operand, dst Operand) error {
+func o_exg(suffix rune, src Operand, dest Operand) error {
 	_ = suffix		// unused
 	WriteBits(1, 1, 0, 0)
 	switch {

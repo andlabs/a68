@@ -127,7 +127,7 @@ func o_addq(suffix rune, src Operand, dest Operand) error {
 		n = 0
 	}
 	WriteBits(0, 1, 0, 1)
-	WriteRegNum(byte(n))	// just reuse this because it does what we want
+	WriteRegNum(int(n))		// just reuse this because it does what we want
 	WriteBits(0)
 	WriteBits(sizes[suffix]...)
 	WriteEANow(dest)

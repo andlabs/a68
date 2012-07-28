@@ -1,6 +1,10 @@
 // 9 july 2012
 package main
 
+import (
+	"fmt"
+)
+
 // TODO chk
 
 // clr <ea>
@@ -64,7 +68,7 @@ func o_cmpi(suffix rune, src Operand, dest Operand) error {
 	WriteBits(1, 1, 0, 0)
 	WriteBits(sizes[suffix]...)
 	fDest := WriteEA(dest)
-	WriteImmediate(src)
+	WriteImmediate(src, suffix)
 	if fDest != nil {
 		fDest()
 	}

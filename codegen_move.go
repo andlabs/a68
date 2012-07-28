@@ -1,6 +1,10 @@
 // 15 july 2012
 package main
 
+import (
+	"fmt"
+)
+
 // move <ea>,<ea>
 func _move_ea_ea(suffix rune, src Operand, dest Operand) error {
 	sizes := map[rune][2]byte{
