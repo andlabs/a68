@@ -21,7 +21,7 @@ func _bug(mode string, format string, args ...interface{}) {
 
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Stack trace: ")
-	debug.PrintStack()	// TODO write to out
+	fmt.Fprintf(out, "%s\n", debug.Stack())
 
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Lexer state: ")
