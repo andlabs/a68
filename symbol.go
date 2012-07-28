@@ -30,7 +30,8 @@ var Symbols, Locals SymbolTable
 
 func init() {
 	Symbols = NewSymbolTable()
-	addBuiltins()
+	addOpcodes()
+//	addBuiltins()
 	Locals = NewSymbolTable()
 }
 
