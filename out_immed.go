@@ -11,7 +11,7 @@ func d8_check(d8 uint32) bool {
 }
 
 func d16_check(d16 uint32) bool {
-	if uint32 > 0xFFFF {
+	if d16 > 0xFFFF {
 		// TODO report error
 		return false
 	}
@@ -21,10 +21,10 @@ func d16_check(d16 uint32) bool {
 func WriteImmed_8(o Operand) func() {
 	return func() {
 		WriteByte(0)				// must align to 16 bits
-		if o.Expr.CanEavluateNow() {
+		if o.Expr.CanEvaluateNow() {
 			res := o.Expr.Evaluate()
 			if d8_check(res) == true {
-				WriteByte(res)
+				WriteByte(byte(res))
 			} else {
 				WriteByte(0)		// just to be safe
 			}
@@ -37,10 +37,10 @@ func WriteImmed_8(o Operand) func() {
 
 func WriteImmed_16(o Operand) func() {
 	return func() {
-		if o.Expr.CanEavluateNow() {
+		if o.Expr.CanEvaluateNow() {
 			res := o.Expr.Evaluate()
 			if d16_check(res) == true {
-				WriteWord(res)
+				WriteWord(uint16(res))
 			} else {
 				WriteWord(0)		// just to be safe
 			}
@@ -53,7 +53,7 @@ func WriteImmed_16(o Operand) func() {
 
 func WriteImmed_32(o Operand) func() {
 	return func() {
-		if o.Expr.CanEavluateNow() {
+		if o.Expr.CanEvaluateNow() {
 			WriteLong(o.Expr.Evaluate())
 		} else {
 			pos := ResLong()
@@ -69,11 +69,14 @@ func WriteImmediate(s Operand, suffix rune) {
 	}
 	switch suffix {
 	case 'b':
-		return WriteImmed_8(s)
+		WriteImmed_8(s)()		// call them now
+		return
 	case 'w':
-		return WriteImmed_16(s)
+		WriteImmed_16(s)()
+		return
 	case 'l':
-		return WriteImmed_32(s)
+		WriteImmed_32(s)()
+		return
 	}
 	FATAL_BUG("attempted to write immediate with invalid suffix '%c'", suffix)
 	panic("FATAL_BUG returned")
