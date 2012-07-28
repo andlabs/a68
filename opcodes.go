@@ -59,19 +59,19 @@ var Opcodes = [...]Opcode{
 	{ "addq", "bwl", "#", "da*+-$%wl", o_addq },
 	{ "addx", "bwl", "d-", "d-", o_addx },
 	{ "and", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_and },
-	{ "andi", " bwl", "#", "d*+-$%wlcs", o_andi },
+///	{ "andi", " bwl", "#", "d*+-$%wlcs", o_andi },
 //	{ "asl", " bwl", " d#", "d*+-$%wl", o_asl },
 //	{ "asr", " bwl", " d#", "d*+-$%wl", o_asr },
 	// TODO asl/asr <ea> suffixes?
 	// TODO Bcc
-	{ "bchg", " ", "d#", "d*+-$%wl", o_bchg },
-	{ "bclr", " ", "d#", "d*+-$%wl", o_bclr },
+///	{ "bchg", " ", "d#", "d*+-$%wl", o_bchg },
+///	{ "bclr", " ", "d#", "d*+-$%wl", o_bclr },
 	// newer CPUs: bfchg, bfclr, bfexts, bfextu, bfffo, bfins, bfset, bftst
 	// TODO bkpt? that's in MC68EC000 but not MC68000
-	{ "bra", "bw", " ", "wl", o_bra },
-	{ "bset", " ", "d#", "d*+-$%wl", o_bset },
-	{ "bsr", "bw", " ", "wl", o_bsr },
-	{ "btst", " ", "d#", "d*+-$%^&wl#", o_btst },
+///	{ "bra", "bw", " ", "wl", o_bra },
+///	{ "bset", " ", "d#", "d*+-$%wl", o_bset },
+///	{ "bsr", "bw", " ", "wl", o_bsr },
+///	{ "btst", " ", "d#", "d*+-$%^&wl#", o_btst },
 	// newer CPUs: callm, cas, cas2
 	// TODO chk suffixes?
 	// newer CPUs: chk2, cinv
@@ -84,7 +84,7 @@ var Opcodes = [...]Opcode{
 	// TODO DBcc
 	// TODO divs and divu suffixes?
 	{ "eor", "bwl", "d", "d*+-$%wl", o_eor },
-	{ "eori", " bwl", "#", "d*+-$%wlcs", o_eori },
+///	{ "eori", " bwl", "#", "d*+-$%wlcs", o_eori },
 	{ "exg", " ", "da", "da", o_exg },
 	{ "ext", "wl", " ", "d", o_ext },
 	// newer CPUs: extb, frestore, fsave
