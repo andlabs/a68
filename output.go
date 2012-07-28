@@ -49,13 +49,13 @@ func WriteWord(w uint16) {
 }
 
 func WriteLong(l uint32) {
-	WriteWord(uint16((w >> 16) & 0xFFFF))
-	WriteWord(uint16(w & 0xFFFF))
+	WriteWord(uint16((l >> 16) & 0xFFFF))
+	WriteWord(uint16(l & 0xFFFF))
 }
 
 func ResByte() int64 {
 	pos := OutBits.Pos()
-	if x == -1 {			// sanity check
+	if pos == -1 {			// sanity check
 		FATAL_BUG("attempted to reserve space for a byte in the middle of a byte")
 	}
 	WriteByte(0)
@@ -64,7 +64,7 @@ func ResByte() int64 {
 
 func ResWord() int64 {
 	pos := OutBits.Pos()
-	if x == -1 {			// sanity check
+	if pos == -1 {			// sanity check
 		FATAL_BUG("attempted to reserve space for a word in the middle of a byte")
 	}
 	WriteWord(0)
@@ -73,7 +73,7 @@ func ResWord() int64 {
 
 func ResLong() int64 {
 	pos := OutBits.Pos()
-	if x == -1 {			// sanity check
+	if pos == -1 {			// sanity check
 		FATAL_BUG("attempted to reserve space for a long in the middle of a byte")
 	}
 	WriteLong(0)
@@ -86,8 +86,8 @@ func WriteRegNum(num int) {
 	if num < 0 || num > 7 {		// sanity check
 		FATAL_BUG("invalid register number %d written", num)
 	}
-	num &= 7
-	WriteBits(num >> 2,
-		num >> 1,
-		num & 1)
+	r := byte(num & 7)
+	WriteBits(r >> 2,
+		r >> 1,
+		r & 1)
 }
