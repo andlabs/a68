@@ -95,18 +95,18 @@ var Opcodes = [...]Opcode{
 	// TODO link suffixes?
 	// TODO lsl/lsr <ea> suffixes?
 	{ "move", " bwl", "da*+-$%^&wl#su", "da*+-$%wlcsu", o_move },
-/*	{ "movea", "wl", "da*+-$%^&wl#", "a", o_movea },
+	{ "movea", "wl", "da*+-$%^&wl#", "a", o_movea },
 	// newer CPUs: move from ccr, move from sr as a supervisor-only instruction, move16, movec, moves
-	{ "movem", "wl", "*+$%^&wlm", "*-$%wlm", o_movem },		// TODO add this to the parser, and then see if I need to add d/a modes to handle lists consiting of a single register
-	{ "movep", "wl", "d*$", "d*$", o_movep },		// slight breach of the rules here, but adding * allows me to elide the 0 in the case of 0(a0) — it'll be handled properly during encoding
-	{ "moveq", " ", "#", "d", o_moveq },
+///	{ "movem", "wl", "*+$%^&wlm", "*-$%wlm", o_movem },		// TODO add this to the parser, and then see if I need to add d/a modes to handle lists consiting of a single register
+///	{ "movep", "wl", "d*$", "d*$", o_movep },		// slight breach of the rules here, but adding * allows me to elide the 0 in the case of 0(a0) — it'll be handled properly during encoding
+///	{ "moveq", " ", "#", "d", o_moveq },
 	// TODO muls and mulu suffixes?
 	{ "nbcd", " ", " ", "d*+-$%wl", o_nbcd },
 	{ "neg", "bwl", " ", "d*+-$%wl", o_neg },
 	{ "negx", "bwl", " ", "d*+-$%wl", o_negx },
 	{ "nop", " ", " ", " ", o_nop },
 	{ "not", "bwl", " ", "d*+-$%wl", o_not },
-	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
+/*	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
 	{ "ori", " bwl", "#", "d*+-$%wlcs", o_ori },
 	// newer CPUs: pack, PBcc, PDBcc
 	{ "pea", " ", " ", "*$%^&wl", o_pea },
