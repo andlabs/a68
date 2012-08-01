@@ -1,10 +1,6 @@
 // 9 july 2012
 package main
 
-import (
-	"fmt"
-)
-
 // TODO chk
 
 // clr <ea>
@@ -31,9 +27,8 @@ func o_cmp(suffix rune, src Operand, dest Operand) error {
 		'l':	{ 0, 1, 0 },
 	}
 
-	if src.Type == 'a' && suffix == 'b' {		// no byte reads from address registers
-		// TODO print the register?
-		return fmt.Errorf("cmp.b cannot be used with an address register source")
+	if err := ochk_noByteReadFromAddrReg(suffix, src, "cmp"); err != nil {
+		return err
 	}
 	WriteBits(1, 0, 1, 1)
 	WriteRegNum(dest.Reg)
