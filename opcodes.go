@@ -106,8 +106,8 @@ var Opcodes = [...]Opcode{
 	{ "negx", "bwl", " ", "d*+-$%wl", o_negx },
 	{ "nop", " ", " ", " ", o_nop },
 	{ "not", "bwl", " ", "d*+-$%wl", o_not },
-/*	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
-	{ "ori", " bwl", "#", "d*+-$%wlcs", o_ori },
+///	{ "or", "bwl", "d*+-$%^&wl#", "d*+-$%wl", o_or },
+///	{ "ori", " bwl", "#", "d*+-$%wlcs", o_ori },
 	// newer CPUs: pack, PBcc, PDBcc
 	{ "pea", " ", " ", "*$%^&wl", o_pea },
 	// newer CPUs: pflush, pflusha, pflushr, pflushs (and other pflush variants), pload, pmove, prestore, psave, PScc, ptest, PTRAPcc, pvalid
@@ -118,7 +118,7 @@ var Opcodes = [...]Opcode{
 	// newer CPUs: rtm
 	{ "rtr", " ", " ", " ", o_rtr },
 	{ "rts", " ", " ", " ", o_rts },
-	{ "sbcd", " ", "d-", "d-", o_sbcd },
+/*	{ "sbcd", " ", "d-", "d-", o_sbcd },
 	// TODO Scc
 	{ "stop", " ", " ", "#", o_stop },
 	{ "sub", "bwl", "da*+-$%^&wl#", "d*+-$%wl", o_sub },
