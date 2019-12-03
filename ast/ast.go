@@ -88,7 +88,8 @@ type PCRelativeWithIndexAndOffsetOperand struct {
 	Lparen	token.Pos
 	PCPos	token.Pos
 	Comma	token.Pos
-	// TODO register spec
+	RegPos	token.Pos
+	Reg		token.Token	// [DA][0..7]_[WL]/SP_[WL]
 	Rparen	token.Pos
 }
 
@@ -164,7 +165,8 @@ type AddressRegisterWithIndexAndOffsetOperand struct {
 	TokPos	token.Pos
 	Tok		token.Token	// A[0..7], SP
 	Comma	token.Pos
-	// TODO register spec
+	RegPos	token.Pos
+	Reg		token.Token	// [DA][0..7]_[WL]/SP_[WL]
 	Rparen	token.Pos
 }
 
