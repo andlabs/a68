@@ -1,0 +1,218 @@
+// 4 december 2019
+package token
+
+import (
+	"fmt"
+	"sync"
+	"sort"
+)
+
+// Pos represents a position in a FileSet.
+// Valid values of Pos start at 1.
+type Pos int
+
+// NoPos represents lack of position.
+const NoPos Pos = 0
+
+// IsValid reports whether p is valid.
+func (p Pos) IsValid() bool {
+	return p > NoPos
+}
+
+// Position stores human-friendly information about a position in a FileSet.
+// The zero Position value is an invalid Position that also represents NoPos.
+type Position struct {
+	Filename	string
+	Offset	int	// in bytes, starting at 0
+	Line		int	// starts at 1; <= 0 is invalid
+	Column	int	// starts at 1; 0 for no column
+}
+
+// IsValid returns whether the given Position is valid.
+func (p *Position) IsValid() bool {
+	return p.Line >= 1
+}
+
+// String converts the Position into a human-readable string.
+func (p Position) String() string {
+	if p.Line <= 0 {
+		if p.Filename != "" {
+			return p.Filename
+		}
+		return "-"
+	}
+	s := p.Filename
+	if s != "" {
+		s += ":"
+	}
+	if p.Column != 0 {
+		s += fmt.Sprintf("%d:%d", p.Line, p.Column)
+	} else {
+		s += fmt.Sprintf("%d", p.Line)
+	}
+	return s
+}
+
+type line struct {
+	base		Pos
+	size		int
+}
+
+// File represents a single file in a FileSet.
+type File struct {
+	mu		sync.RWMutex
+	name	string
+	base		Pos
+	size		int		// including EOF
+	lines		[]*line
+}
+
+// Name returns f's filename.
+func (f *File) Name() string {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.name
+}
+
+// Size returns f's size in bytes, not including the terminating EOF token.
+func (f *File) Size() int {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.size - 1
+}
+
+// LineCount returns the number of lines in f.
+func (f *File) LineCount() int {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return len(f.lines)
+}
+
+// AddLine adds a line to f that is n bytes long, including the terminating newline character. It panics if you go past the end of file.
+func (f *File) AddLine(n int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	lp := f.base
+	for _, l := range f.lines {
+		lp += Pos(l.size)
+	}
+	if lp >= Pos(f.size) || (lp + Pos(n)) > Pos(f.size) {
+		panic(fmt.Sprintf("AddLine(%d) to %s: past eof: too many lines or line too long", n, f.name))
+	}
+	f.lines = append(f.lines, &line{
+		base:	lp,
+		size:		n,
+	})
+}
+
+// Line returns the line number, starting at 1, for the given pos in f, or 0 if pos is not in f. If no lines have been added yet, Line behaves as if the file is one giant line.
+func (f *File) Line(pos Pos) int {
+	return f.Position(pos).Line
+}
+
+// Offset returns the byte offset in f that corresponds to pos, or -1 if pos is not in f.
+func (f *File) Offset(pos Pos) int {
+	p := f.Position(pos)
+	if !p.IsValid() {
+		return -1
+	}
+	return p.Offset
+}
+
+// Pos returns the Pos that corresponds to the byte offset off in f. off may point one past the end of the file, in which case a Pos corresponding to the EOF token for f is returned. If off is invalid, NoPos is returned.
+func (f *File) Pos(off int) Pos {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	if off < 0 || off > f.size {
+		return NoPos
+	}
+	return f.base + Pos(off)
+}
+
+// Position returns the Position for the given pos in f, or the equivalent of NoPos if pos is not contained in f. If no lines have been added to f, this function acts as if the file had one giant line.
+func (f *File) Position(pos Pos) Position {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+
+	if pos < f.base || pos > (f.base + Pos(f.size)) {
+		return
+	}
+	p := Position{
+		Filename:		f.name,
+		Offset:		int(pos - f.base),
+	}
+	p.Line = 1
+	p.Column = p.Offset + 1
+	if len(f.lines) != 0 {
+		// the sort.Search returns the first line index that comes *after* pos; subtract 1 to get to the line index *with* pos
+		n := sort.Search(len(f.lines), func(i int) bool {
+			return f.lines[i].base > pos
+		}) - 1
+		if n >= 0 {
+			p.Line = n + 1
+			p.Column = int(pos - f.lines[n].base) + 1
+		}
+	}
+	return p
+}
+
+// FileSet represents a series of files.
+type FileSet struct {
+	mu		sync.RWMutex
+	nextPos	Pos
+	files		[]*File
+}
+
+// NewFileSet returns a new empty FileSet.
+func NewFileSet() *FileSet {
+	return &FileSet{
+		nextPos:	1,
+		files:		make([]*File, 0, 8),
+	}
+}
+
+// AddFile adds a file with the given name and size to f.
+func (fs *FileSet) AddFile(name string, size int) *File {
+	fs.Lock()
+	defer fs.Unlock()
+
+	size++		// files always contain EOF
+	f := &File{
+		name:	name,
+		base:	fs.nextPos,
+		size:		size,
+		lines:	make([]*line, 0, 32),
+	}
+	fs.files = append(fs.files, f)
+	fs.nextPos += Pos(size)
+	return f
+}
+
+// FileAt returns the file at a given pos in f, or nil if pos does not map to a file.
+func (fs *FileSet) FileAt(pos Pos) *File {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+
+	if pos <= NoPos || pos >= fs.nextPos {
+		return nil
+	}
+	// the sort.Search returns the first file that comes *after* pos; subtract 1 to get to the file *with* pos
+	n := sort.Search(len(fs.files), func(i int) bool {
+		return fs.files[i].base > pos
+	}) - 1
+	if n < 0 {
+		return nil
+	}
+	return fs.files[n]
+}
+
+// Position returns the Position for the given pos in fs, or the equivalent of NoPos if pos is not contained in fs.
+func (fs *FileSet) Position(pos Pos) Position {
+	f := fs.FileAt(pos)
+	if f == nil {
+		return
+	}
+	return f.Position(pos)
+}
