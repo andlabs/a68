@@ -1,12 +1,10 @@
 // 5 december 2019
-package scanner
+package common
 
 import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/andlabs/a68/token"
 )
 
 // runeReader is like bytes.Reader except that it keeps track of the offset of the current rune.
@@ -61,10 +59,10 @@ type Scanner struct {
 	ErrorCount	int
 	handler		ErrorHandler
 
-	cur			*token.File
+	cur			*File
 	r			*runeReader
 
-	unreadp		token.Pos
+	unreadp		Pos
 	unreadr		rune
 }
 
@@ -95,14 +93,14 @@ func (s *Scanner) readrune() (p token.Pos, r rune, ok bool) {
 }
 
 func (s *scanner) unreadrune(p token.Pos, r rune) {
-	if s.unreadp != token.NoPos {
+	if s.unreadp != NoPos {
 		panic("excessive unreading")
 	}
 	s.unreadp = p
 	s.unreadr = r
 }
 
-func (s *scanner) send(p token.Pos, tok token.Token, lit []rune) {
+func (s *scanner) send(p Pos, tok Token, lit []rune) {
 	// TODO
 }
 
@@ -118,7 +116,7 @@ var multibyteTokens = map[rune]statefunc{
 	'>':		(*scanner).nextGreater,
 }
 
-var singlebyteTokens = map[rune]token.Token{
+var singlebyteTokens = map[rune]common.Token{
 	'(':		LPAREN,
 	')':		RPAREN,
 	'{':		LBRACE,
@@ -165,7 +163,7 @@ func (s *scanner) nextInit() statefunc {
 	}
 	tok, ok := singlebyteTokens[r]
 	if !ok {
-		tok = token.ILLEGAL
+		tok = common.ILLEGAL
 	}
 	s.send(p, tok, []rune{r})
 	return (*scanner).nextInit
