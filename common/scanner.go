@@ -55,116 +55,64 @@ func (r *runeReader) firstByte() byte {
 	return r.b[r.pos]
 }
 
+type PosRune struct {
+	Pos		Pos
+	Rune		rune
+}
+
 type Scanner struct {
 	ErrorCount	int
 	handler		ErrorHandler
 
-	cur			*File
+	f			*File
 	r			*runeReader
 
-	unreadp		Pos
-	unreadr		rune
+	unread		[]PosRune
 }
 
-func (s *Scanner) err(p token.Pos, format string, args ...interface{}) {
-	s.ErrorCount++
-	if s.handler != nil {
-		s.handler(s.cur.Position(p), fmt.Sprintf(format, args...))
+func NewScanner(f *File, data []byte, handler ErrorHandler) *Scanner {
+	if f.Size() != len(data) {
+		panic(fmt.Sprintf("size mismatch in NewScanner(): file size %d != data size %d", f.Size(), len(data))
+	}
+	return &Scanner{
+		handler:		handler,
+		f:			f,
+		r:			newRuneReader(data),
+		unread:		make([]PosRune, 0, 16),
 	}
 }
 
-func (s *Scanner) readrune() (p token.Pos, r rune, ok bool) {
-	if s.unreadp != token.NoPos {
-		p, r = s.unreadp, s.unreadr
-		s.unreadp = token.NoPos
-		s.unreadr = 0
-		return p, r, true
+func (s *Scanner) Err(p token.Pos, format string, args ...interface{}) {
+	s.ErrorCount++
+	if s.handler != nil {
+		s.handler(s.f.Position(p), fmt.Sprintf(format, args...))
+	}
+}
+
+func (s *Scanner) Read() (pr PosRune, ok bool) {
+	if len(s.unread) != 0 {
+		i := len(s.unread) - 1
+		pr = s.unread[i]
+		s.unread = s.unread[:i]
+		return pr, true
 	}
 	for {
 		ok = s.r.next()
-		p = s.cur.Pos(s.r.off())
+		pr.Pos = s.f.Pos(s.r.off())
+		pr.Rune = s.r.rune()
 		if !ok || s.r.isValid() {
 			break
 		}
 		// report error and try next byte
-		s.err(p, "invalid byte 0x%X in UTF-8 stream", s.r.firstByte())
+		s.Err(pr.Pos, "invalid byte 0x%X in UTF-8 stream", s.r.firstByte())
 	}
-	return p, s.r.rune(), ok
+	return pr, ok
 }
 
-func (s *scanner) unreadrune(p token.Pos, r rune) {
-	if s.unreadp != NoPos {
-		panic("excessive unreading")
-	}
-	s.unreadp = p
-	s.unreadr = r
+func (s *Scanner) Unread(pr PosRune) {
+	s.unread = append(s.unread, pr)
 }
 
-func (s *scanner) send(p Pos, tok Token, lit []rune) {
-	// TODO
-}
-
-type statefunc func(s *scanner) statefunc
-
-var multibyteTokens = map[rune]statefunc{
-	'/':		(*scanner).nextDivideComment,
-	'%':		(*scanner).nextBinaryIntegerMod,
-	'&':		(*scanner).nextAnd,
-	'|':		(*scanner).nextOr,
-	'=':		(*scanner).nextEquals,
-	'<':		(*scanner).nextLess,
-	'>':		(*scanner).nextGreater,
-}
-
-var singlebyteTokens = map[rune]common.Token{
-	'(':		LPAREN,
-	')':		RPAREN,
-	'{':		LBRACE,
-	'}':		RBRACE,
-	'#':		IMMEDIATE,
-	'+':		ADD,
-	'-':		SUBTRACT,
-	'*':		MULTIPLY,
-	'^':		XOR,
-	'~':		CMPL,
-	'!':		NOT,
-	',':		COMMA,
-	';':		SEMICOLON,
-	':':		COLON,
-}
-
-func (s *scanner) nextInit() statefunc {
-	p, r, ok := s.readrune()
-	if !ok {
-		return nil					// stop scanning
-	}
-	if r == '\n' {
-		s.cur.AddLine(s.cur.Offset(p))	// mark end of line
-		reutrn (*scanner).nextInit		// skip whitespace
-	}
-	if r == ' ' || r == '\t' || r == '\r' {
-		return (*scanner).nextInit		// skip whitespace
-	}
-	if r >= '0' && r <= '9' {
-		s.unreadrune(p, r)
-		return (*scanner).nextInteger
-	}
-	if r == '$' {
-		return (*scanner).nextHexInteger
-	}
-	if r == '.' || r == '_' || unicode.IsLetter(r) {
-		s.unreadrune(p, r)
-		return (*scanner).nextIdentifier
-	}
-	// TODO characters and strings
-	if f, ok := multibyteTokens[r]; ok {
-		s.unreadrune(p, r)
-		return f
-	}
-	tok, ok := singlebyteTokens[r]
-	if !ok {
-		tok = common.ILLEGAL
-	}
-	s.send(p, tok, []rune{r})
-	return (*scanner).nextInit
+func (s *Scanner) MarkEOL(p Pos) {
+	s.f.AddLine(s.f.Offset(p))
 }
