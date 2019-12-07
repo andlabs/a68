@@ -102,7 +102,7 @@ func (s *scanner) unreadrune(p token.Pos, r rune) {
 	s.unreadr = r
 }
 
-func (s *scanner) send(tok token.Token, lit []rune) {
+func (s *scanner) send(p token.Pos, tok token.Token, lit []rune) {
 	// TODO
 }
 
@@ -167,6 +167,6 @@ func (s *scanner) nextInit() statefunc {
 	if !ok {
 		tok = token.ILLEGAL
 	}
-	s.send(tok, []rune{r})
+	s.send(p, tok, []rune{r})
 	return (*scanner).nextInit
 }
