@@ -55,11 +55,6 @@ func (r *runeReader) firstByte() byte {
 	return r.b[r.pos]
 }
 
-type PosRune struct {
-	Pos		Pos
-	Rune		rune
-}
-
 type Scanner struct {
 	ErrorCount	int
 	handler		ErrorHandler
@@ -67,7 +62,8 @@ type Scanner struct {
 	f			*File
 	r			*runeReader
 
-	unread		[]PosRune
+	unreadp		[]Pos
+	unreadr		[]rune
 }
 
 func NewScanner(f *File, data []byte, handler ErrorHandler) *Scanner {
@@ -78,7 +74,8 @@ func NewScanner(f *File, data []byte, handler ErrorHandler) *Scanner {
 		handler:		handler,
 		f:			f,
 		r:			newRuneReader(data),
-		unread:		make([]PosRune, 0, 16),
+		unreadp:		make([]Pos, 0, 16),
+		unreadr:		make([]rune, 0, 16),
 	}
 }
 
@@ -89,28 +86,31 @@ func (s *Scanner) Err(p token.Pos, format string, args ...interface{}) {
 	}
 }
 
-func (s *Scanner) Read() (pr PosRune, ok bool) {
-	if len(s.unread) != 0 {
-		i := len(s.unread) - 1
-		pr = s.unread[i]
-		s.unread = s.unread[:i]
+func (s *Scanner) Read() (p Pos, r rune, ok bool) {
+	if len(s.unreadp) != 0 {
+		i := len(s.unreadp) - 1
+		p = s.unreadp[i]
+		s.unreadp = s.unreadp[:i]
+		r = s.unreadr[i]
+		s.unreadr = s.unreadr[:i]
 		return pr, true
 	}
 	for {
 		ok = s.r.next()
-		pr.Pos = s.f.Pos(s.r.off())
-		pr.Rune = s.r.rune()
+		p = s.f.Pos(s.r.off())
+		r = s.r.rune()
 		if !ok || s.r.isValid() {
 			break
 		}
 		// report error and try next byte
 		s.Err(pr.Pos, "invalid byte 0x%X in UTF-8 stream", s.r.firstByte())
 	}
-	return pr, ok
+	return p, r, ok
 }
 
-func (s *Scanner) Unread(pr PosRune) {
-	s.unread = append(s.unread, pr)
+func (s *Scanner) Unread(p Pos, r rune) {
+	s.unreadp = append(s.unreadp, p)
+	s.unreadr = append(s.unreadr, r)
 }
 
 func (s *Scanner) MarkEOL(p Pos) {
