@@ -57,7 +57,6 @@ func (s *Scanner) run() {
 
 var multibyteTokens = map[rune]statefunc{
 	'/':		(*Scanner).nextDivideComment,
-	'%':		(*Scanner).nextBinaryIntegerMod,
 	'&':		(*Scanner).nextAnd,
 	'|':		(*Scanner).nextOr,
 	'=':		(*Scanner).nextEquals,
@@ -95,11 +94,10 @@ func (s *scanner) nextInit() statefunc {
 	if r == ' ' || r == '\t' || r == '\r' {
 		return (*Scanner).nextInit		// skip whitespace
 	}
-	if (r >= '0' && r <= '9') || r == '$' {
+	if (r >= '0' && r <= '9') || r == '$' || r == '%' {
 		s.s.Unread(p, r)
 		return (*Scanner).nextInteger
 	}
-	// TODO binary numbers
 	if r == '.' || r == '_' || unicode.IsLetter(r) {
 		s.s.Unread(p, r)
 		return (*Scanner).nextIdentifier
@@ -118,12 +116,11 @@ func (s *scanner) nextInit() statefunc {
 }
 
 func (s *Scanner) nextInteger() statefunc {
+	lit := make([]rune, 0, 16)
 	f := s.readDecimalInteger
-	lit := []rune{}
-	base := []rune{}
 
 	p, r, _ := s.s.Read()
-	base = append(base, r)
+	lit = append(lit, r)
 	if r == '$' {
 		f = s.readHexInteger
 		goto read
@@ -133,31 +130,28 @@ func (s *Scanner) nextInteger() statefunc {
 		goto read
 	}
 	if r != '0' {
-		lit = []rune{r}
 		goto read
 	}
-	p2, r2, _ := s.s.Read()
+	p2, r2, ok := s.s.Read()
+	if !ok {		// the last token of the file is a single 0
+		goto send
+	}
 	if r2 == 'x' || r2 == 'X' {
-		base = append(base, r2)
+		lit = append(lit, r2)
 		f = s.readHexInteger
 		goto read
 	}
 	if r2 == 'b' || r2 == 'B' {
-		base = append(base, r2)
+		lit = append(lit, r2)
 		f = s.readBinaryInteger
 		goto read
 	}
 	s.s.Unread(p2, r2)
-	lit = []rune{r}
 
 read:
 	lit = append(lit, f()...)
-	tok := INTEGER
-	if len(lit) == 0) {
-		lit = base
-		tok = common.ILLEGAL
-	}
-	s.send(p, tok, lit)
+send:
+	s.send(p, INT, lit)
 	return (*Scanner).nextInit
 }
 
@@ -187,4 +181,30 @@ func (s *Scanner) readStringOf(runes string) (lit []rune) {
 		lit = append(lit, r)
 	}
 	return lit
+}
+
+func (s *Scanner) nextIdentifier() statefunc {
+	lit := make([]rune, 0, 16)
+	var firstp Pos
+	for {
+		p, r, ok := s.s.Read()
+		if !ok {
+			break
+		}
+		if r != '.' && r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			s.s.Unread(p, r)
+			break
+		}
+		if firstp == common.NoPos {
+			firstp = p
+		}
+		lit = append(lit, r)
+	}
+	tok := common.Lookup(string(lit))
+	if tok == common.IDENT && lit[0] == '.' {
+		s.s.Err(firstp, "invalid keyword %q", lit)
+		return (*Scanner).nextInit
+	}
+	s.send(firstp, tok, lit)
+	return (*Scanner).nextInit
 }
