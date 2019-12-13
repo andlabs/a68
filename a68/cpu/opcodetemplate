@@ -1,0 +1,15 @@
+func (REPLACE_Name) Name() string {
+	return "REPLACE_name"
+}
+
+func (REPLACE_Name) ValidSuffix(suffix string) bool {
+	return TODO
+}
+
+func (REPLACE_Name) OperandCount() int {
+	return TODO
+}
+
+func (REPLACE_Name) ValidOperand(operand Operand, which int) bool {
+	return TODO
+}

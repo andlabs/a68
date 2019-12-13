@@ -2,7 +2,11 @@
 package cpu
 
 type Opcode interface {
-	// TODO
+	Name() string
+	ValidSuffix(suffix string) bool
+	NumOperands() int
+	ValidOperand(operand Operand, which int) bool
+	// TODO opcode encoding
 }
 
 var Opcodes = []Opcode{
