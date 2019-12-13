@@ -1,5 +1,5 @@
 // 12 december 2019
-package core
+package cpu
 
 var Opcodes = TODO{
 abcd
