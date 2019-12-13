@@ -1,0 +1,160 @@
+diff --git a/common/expr.go b/common/expr.go
+new file mode 100644
+index 0000000..ba68d16
+--- /dev/null
++++ b/common/expr.go
+@@ -0,0 +1,125 @@
++// 13 december 2019
++package common
++
++import (
++	"errors"
++)
++
++// Operator precedence is identical to Go:
++// 7. function call
++// 6. unary operators: + - ~ !
++// 5. * / .mod << >> &
++// 4. + - | ^
++// 3. == != < <= > >=
++// 2. &&
++// 1. ||
++// All binary operators are left-associative.
++
++type Expression struct {
++	pos		Pos
++	queue	[]exprunit
++	opstack	[]exprunit
++	prev		exprunit
++}
++
++type exprunit struct {
++	pos		Pos
++	tok		Token
++	realtok	Token		// for when tok is internalCall
++	lit		string
++}
++
++func NewExpression(p Pos) *Expression {
++	return &Expression{
++		pos:		p,
++		queue:	make([]exprunit, 0, 8),
++		opstack:	make([]exprunit, 0, 8),
++	}
++}
++
++var (
++	ErrExpressionFinished = errors.New("expression already finished (internal bug)")
++	ErrMismatchedParens = errors.New("mismatched parentheses")
++	ErrInvalidExpressionToken = errors.New("invalid expression token (internal bug)")
++)
++
++func (e *Expression) Shunt(pos Pos, tok Token, lit string) (err error) {
++	if e.opstack == nil {
++		return ErrExpressionFinished
++	}
++	u := exprunit{
++		pos: pos,
++		tok: tok,
++		realtok: tok,
++		lit: lit,
++	}
++	switch {
++	case tok.IsLiteral():
++		e.queue = append(e.queue, u)
++	case tok.IsOperator():
++	case tok == LPAREN:
++		if e.prev.tok.IsLiteral() {
++			// previous is a literal, so this is a call
++			v := e.queue[len(e.queue) - 1]
++			e.queue = e.queue[:len(e.queue) - 1]
++			v.tok = internalCall
++			e.opstack = append(e.opstack, v)
++		}
++		// previous is an operator, so this is just parentheses
++		// note that we always push parentheses, even for calls
++		e.opstack = append(e.opstack, u)
++	case tok == RPAREN:
++		var i int
++		for i = len(e.opstack) - 1; i >= 0; i-- {
++			v := e.opstack[i]
++			if v.tok == LPAREN {
++				break
++			}
++			e.queue = append(e.queue, v)
++		}
++		if i < 0 {
++			err = ErrMismatchedParens
++			break
++		}
++		// pop all the enqueued operators AND the lparen/internal call off the stack at once
++		e.opstack = e.opstack[:i - 1]
++	default:
++		prec := opPrec(what)
++		if prec == 0 {
++			err = ErrInvalidExpressionUnit
++			break
++		}
++		var i int
++		for i = len(e.opstack) - 1; i >= 0; i-- {
++			v := e.opstack[i]
++			if v.what == Lparen {
++				break
++			}
++			if v.what != internalCall && opPrec(v.what) < prec {
++				break
++			}
++			e.queue = append(e.queue, v)
++		}
++		if i < 0 {		// can't slice negatively
++			i = 0
++		}
++		// remove the enqueued operators and push the new one all in one go
++		e.opstack = append(e.opstack[:i], u)
++	}
++	e.prev = u
++	return err
++}
++
++func (e *Expression) Finish() {
++	if e.opstack == nil {
++		panic("finishing finished expression")
++	}
++}
++
++type LookupPrimaryFunc func(tok string) (val uint32, ok bool)
++
++func (e *Expression) Eval(lookupPrimary LookupPrimaryFunc) (uint32, error) {
++	if e.opstack != nil {
++		panic("evaluating unfinished expression")
++	}
++}
+diff --git a/common/token.go b/common/token.go
+index e82859d..5954c3c 100644
+--- a/common/token.go
++++ b/common/token.go
+@@ -19,6 +19,11 @@ const (
+ 
+ 	// Literal tokens.
+ 	IDENT		// Used for non-keyword identifiers.
++	LPAREN		// (
++	RPAREN		// )
++
++	// Special tokens for internal use.
++	internalCall	// for Expression, pseudo-token for function calls
+ 
+ 	nPredefined
+ )
+@@ -51,6 +56,12 @@ func init() {
+ 	tokens[COMMENT].str = "COMMENT"
+ 	tokens[IDENT].typ = literal
+ 	tokens[IDENT].str = "IDENT"
++	tokens[LPAREN].typ = literal
++	tokens[LPAREN].str = "("
++	tokens[RPAREN].typ = literal
++	tokens[RPAREN].str = ")"
++	tokens[internalCall].typ = special
++	tokens[internalCall].str = "internalCall"
+ }
+ 
+ // AddLiteral adds a literal token type. str should be a constant name for the token type.
