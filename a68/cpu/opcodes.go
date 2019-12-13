@@ -1,122 +1,126 @@
 // 12 december 2019
 package cpu
 
-var Opcodes = TODO{
-abcd
-add
-adda
-addi
-addq
-addx
-and
-andi
-asl
-asr
-bcc
-bchg
-bclr
-bcs
-beq
-bge
-bgt
-bhi
-ble
-bls
-blt
-bmi
-bne
-bpl
-bra
-bset
-bsr
-btst
-bvc
-bvs
-chk
-clr
-cmp
-cmpa
-cmpi
-cmpm
-dbcc
-dbcs
-dbeq
-dbf
-dbge
-dbgt
-dbhi
-dble
-dbls
-dblt
-dbmi
-dbne
-dbpl
-dbt
-dbvc
-dbvs
-divs
-divu
-eor
-eori
-exg
-ext
-illegal		// $4AFC specifically
-jmp
-jsr
-lea
-link
-lsl
-lsr
-move
-movea
-movem
-movep
-moveq
-muls
-mulu
-nbcd
-neg
-negx
-nop
-not
-or
-ori
-pea
-reset
-rol
-ror
-roxl
-roxr
-rte
-rtr
-rts
-sbcd
-scc
-scs
-seq
-sf
-sge
-sgt
-shi
-sle
-sls
-slt
-smi
-sne
-spl
-st
-stop
-sub
-suba
-subi
-subq
-subx
-svc
-svs
-swap
-tas
-trap
-trapv
-tst
-unlk
+type Opcode interface {
+	// TODO
+}
+
+var Opcodes = []Opcode{
+	Abcd{},
+	Add{},
+	Adda{},
+	Addi{},
+	Addq{},
+	Addx{},
+	And{},
+	Andi{},
+	Asl{},
+	Asr{},
+	Bcc{},
+	Bchg{},
+	Bclr{},
+	Bcs{},
+	Beq{},
+	Bge{},
+	Bgt{},
+	Bhi{},
+	Ble{},
+	Bls{},
+	Blt{},
+	Bmi{},
+	Bne{},
+	Bpl{},
+	Bra{},
+	Bset{},
+	Bsr{},
+	Btst{},
+	Bvc{},
+	Bvs{},
+	Chk{},
+	Clr{},
+	Cmp{},
+	Cmpa{},
+	Cmpi{},
+	Cmpm{},
+	Dbcc{},
+	Dbcs{},
+	Dbeq{},
+	Dbf{},
+	Dbge{},
+	Dbgt{},
+	Dbhi{},
+	Dble{},
+	Dbls{},
+	Dblt{},
+	Dbmi{},
+	Dbne{},
+	Dbpl{},
+	Dbt{},
+	Dbvc{},
+	Dbvs{},
+	Divs{},
+	Divu{},
+	Eor{},
+	Eori{},
+	Exg{},
+	Ext{},
+	Illegal{},		// $4AFC specifically
+	Jmp{},
+	Jsr{},
+	Lea{},
+	Link{},
+	Lsl{},
+	Lsr{},
+	Move{},
+	Movea{},
+	Movem{},
+	Movep{},
+	Moveq{},
+	Muls{},
+	Mulu{},
+	Nbcd{},
+	Neg{},
+	Negx{},
+	Nop{},
+	Not{},
+	Or{},
+	Ori{},
+	Pea{},
+	Reset{},
+	Rol{},
+	Ror{},
+	Roxl{},
+	Roxr{},
+	Rte{},
+	Rtr{},
+	Rts{},
+	Sbcd{},
+	Scc{},
+	Scs{},
+	Seq{},
+	Sf{},
+	Sge{},
+	Sgt{},
+	Shi{},
+	Sle{},
+	Sls{},
+	Slt{},
+	Smi{},
+	Sne{},
+	Spl{},
+	St{},
+	Stop{},
+	Sub{},
+	Suba{},
+	Subi{},
+	Subq{},
+	Subx{},
+	Svc{},
+	Svs{},
+	Swap{},
+	Tas{},
+	Trap{},
+	Trapv{},
+	Tst{},
+	Unlk{},
 }
