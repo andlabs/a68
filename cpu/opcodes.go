@@ -3,13 +3,16 @@ package cpu
 
 type Opcode interface {
 	Name() string
+/*TODO
 	ValidSuffix(suffix string) bool
 	NumOperands() int
 	ValidOperand(operand Operand, which int) bool
+*/
 	// TODO opcode encoding
 }
 
 var Opcodes = []Opcode{
+/*TODO
 	Abcd{},
 	Add{},
 	Adda{},
@@ -127,4 +130,5 @@ var Opcodes = []Opcode{
 	Trapv{},
 	Tst{},
 	Unlk{},
+*/
 }

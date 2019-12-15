@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/andlabs/a68/token"
 )
@@ -24,7 +23,7 @@ type Scanner struct {
 
 func NewScanner(f *token.File, data []byte) *Scanner {
 	if f.Size() != len(data) {
-		panic(fmt.Sprintf("size mismatch in NewScanner(): file size %d != data size %d", f.Size(), len(data))
+		panic(fmt.Sprintf("size mismatch in NewScanner(): file size %d != data size %d", f.Size(), len(data)))
 	}
 	s := &Scanner{
 		res:		make(chan result),
@@ -49,13 +48,13 @@ func (s *Scanner) sendstr(off int, tok token.Token, lit string) {
 }
 
 func (s *Scanner) send(off int, tok token.Token, lit []rune) {
-	return s.sendstr(off, tok, string(lit))
+	s.sendstr(off, tok, string(lit))
 }
 
 type statefunc func(s *Scanner) statefunc
 
 func (s *Scanner) run() {
-	var sf statefunc = sf.next
+	var sf statefunc = (*Scanner).next
 	s.r.read()		// get things going
 	for sf != nil {
 		sf(s)
@@ -72,7 +71,7 @@ var singlebyteTokens = map[rune]token.Token{
 func (s *Scanner) next() statefunc {
 	off, r := s.r.cur()
 	if r == -1 {
-		s.send(off, token.EOF, "")
+		s.send(off, token.EOF, nil)
 		return nil					// stop scanning
 	}
 	if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
@@ -115,7 +114,7 @@ func (s *Scanner) nextInteger() statefunc {
 	if r != '0' {
 		goto read
 	}
-	r := s.r.peekbyteasrune()
+	r = s.r.peekbyteasrune()
 	if r == -1 {		// the last token of the file is a single 0
 		goto send
 	}
@@ -135,7 +134,7 @@ func (s *Scanner) nextInteger() statefunc {
 read:
 	lit = append(lit, f()...)
 send:
-	s.send(off, INT, lit)
+	s.send(off, token.INT, lit)
 	return (*Scanner).next
 }
 
@@ -152,7 +151,7 @@ func (s *Scanner) readHexInteger() []rune {
 }
 
 func (s *Scanner) readStringOf(runes string) (lit []rune) {
-	lit := make([]rune, 0, 8)
+	lit = make([]rune, 0, 8)
 	for {
 		_, r := s.r.read()
 		if r == -1 || !strings.ContainsRune(runes, r) {

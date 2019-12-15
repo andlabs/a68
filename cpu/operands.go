@@ -1,6 +1,7 @@
 // 13 december 2019
 package cpu
 
+/*TODO
 type Operand interface {
 	operand()
 }
@@ -98,3 +99,4 @@ func (USPOperand) operand() {}
 
 type MovemOperand uint16
 func (MovemOperand) operand() {}
+*/

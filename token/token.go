@@ -159,7 +159,7 @@ var tokens = [...]string{
 var keywords map[string]Token
 
 func init() {
-	keywords = make(map[string]Token, (len(cpu.Opcodes) * 5) + (8 * 6) + 3 + (keywordEnd - keywordClassEnd))
+	keywords = make(map[string]Token, (len(cpu.Opcodes) * 5) + (8 * 6) + 3 + int(keywordEnd - keywordClassEnd))
 	for _, op := range cpu.Opcodes {
 		n := op.Name()
 		keywords[n] = OPCODE
@@ -240,7 +240,7 @@ func (t Token) Precedence() int {
 
 // String returns the string for t.
 func (t Token) String() string {
-	if t >= 0 && t < len(tokens) {
+	if t >= 0 && t < Token(len(tokens)) {
 		return tokens[t]
 	}
 	return "Token(" + strconv.Itoa(int(t)) + ")"

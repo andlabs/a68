@@ -19,7 +19,7 @@ type reader struct {
 	handler		ErrorHandler
 }
 
-func newReader(f *File, data []byte, handler ErrorHandler) *reader {
+func newReader(f *token.File, data []byte, handler ErrorHandler) *reader {
 	return &reader{
 		f:			f,
 		b:			data,
