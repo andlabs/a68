@@ -7,48 +7,53 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/andlabs/a68/common"
+	"github.com/andlabs/a68/token"
 )
 
 type result struct {
-	pos		common.Pos
-	tok		common.Token
+	pos		token.Pos
+	tok		token.Token
 	lit		string
 }
 
 type Scanner struct {
-	s		*common.Scanner
+	r		*reader
 	res		chan result
-	errs		*common.ErrorList
+	errs		*ErrorList
 }
 
-func NewScanner(f *common.File, data []byte) *Scanner {
+func NewScanner(f *File, data []byte) *Scanner {
 	s := &Scanner{
 		res:		make(chan result),
-		errs:		&common.ErrorList{},
+		errs:		&ErrorList{},
 	}
-	s.s = common.NewScanner(f, data, s.errs.Add)
+	s.r = newReader(f, data, s.errs.Add)
 	go s.run()
 	return s
 }
 
-func (s *Scanner) Next() (pos common.Pos, tok common.Token, lit string) {
+func (s *Scanner) Next() (pos token.Pos, tok token.Token, lit string) {
 	r := <-s.res
 	return r.pos, r.tok, r.lit
 }
 
-func (s *Scanner) send(p common.Pos, tok common.Token, lit []rune) {
+func (s *Scanner) sendstr(off int, tok token.Token, lit string) {
 	s.res <- result{
-		pos:		p,
+		pos:		s.r.pos(off),
 		tok:		tok,
-		lit:		string(lit),
+		lit:		lit,
 	}
+}
+
+func (s *Scanner) send(off int, tok token.Token, lit []rune) {
+	return s.sendstr(off, tok, string(lit))
 }
 
 type statefunc func(s *Scanner) statefunc
 
 func (s *Scanner) run() {
-	var sf statefunc := sf.nextInit
+	var sf statefunc = sf.next
+	s.r.read()		// get things going
 	for sf != nil {
 		sf(s)
 	}
@@ -56,70 +61,45 @@ func (s *Scanner) run() {
 }
 
 var multibyteTokens = map[rune]statefunc{
-	'/':		(*Scanner).nextDivideComment,
-	'&':		(*Scanner).nextAnd,
-	'|':		(*Scanner).nextOr,
-	'=':		(*Scanner).nextEquals,
-	'<':		(*Scanner).nextLess,
-	'>':		(*Scanner).nextGreater,
 }
 
-var singlebyteTokens = map[rune]common.Token{
-	'(':		LPAREN,
-	')':		RPAREN,
-	'{':		LBRACE,
-	'}':		RBRACE,
-	'#':		IMMEDIATE,
-	'+':		ADD,
-	'-':		SUBTRACT,
-	'*':		MULTIPLY,
-	'^':		XOR,
-	'~':		CMPL,
-	'!':		NOT,
-	',':		COMMA,
-	';':		SEMICOLON,
-	':':		COLON,
+var singlebyteTokens = map[rune]token.Token{
 }
 
-func (s *scanner) nextInit() statefunc {
-	p, r, ok := s.s.Read()
-	if !ok {
-		s.send(p, common.EOF, "")
+func (s *Scanner) next() statefunc {
+	off, r := s.r.cur()
+	if r == -1 {
+		s.send(off, token.EOF, "")
 		return nil					// stop scanning
 	}
-	if r == '\n' {
-		s.s.MarkEOL(p)				// mark end of line
-		reutrn (*Scanner).nextInit		// skip whitespace
-	}
-	if r == ' ' || r == '\t' || r == '\r' {
-		return (*Scanner).nextInit		// skip whitespace
+	if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
+		s.r.read()					// skip whitespace
+		return (*Scanner).next
 	}
 	if (r >= '0' && r <= '9') || r == '$' || r == '%' {
-		s.s.Unread(p, r)
 		return (*Scanner).nextInteger
 	}
 	if r == '.' || r == '_' || unicode.IsLetter(r) {
-		s.s.Unread(p, r)
 		return (*Scanner).nextIdentifier
 	}
 	// TODO characters and strings
 	if f, ok := multibyteTokens[r]; ok {
-		s.s.Unread(p, r)
 		return f
 	}
 	tok, ok := singlebyteTokens[r]
 	if !ok {
-		tok = common.ILLEGAL
+		tok = token.ILLEGAL
 	}
-	s.send(p, tok, []rune{r})
-	return (*Scanner).nextInit
+	s.send(off, tok, []rune{r})
+	s.r.read()
+	return (*Scanner).next
 }
 
 func (s *Scanner) nextInteger() statefunc {
 	lit := make([]rune, 0, 16)
 	f := s.readDecimalInteger
 
-	p, r, _ := s.s.Read()
+	off, r := s.r.cur()
 	lit = append(lit, r)
 	if r == '$' {
 		f = s.readHexInteger
@@ -132,27 +112,28 @@ func (s *Scanner) nextInteger() statefunc {
 	if r != '0' {
 		goto read
 	}
-	p2, r2, ok := s.s.Read()
-	if !ok {		// the last token of the file is a single 0
+	r := s.r.peekbyteasrune()
+	if r == -1 {		// the last token of the file is a single 0
 		goto send
 	}
-	if r2 == 'x' || r2 == 'X' {
-		lit = append(lit, r2)
+	if r == 'x' || r == 'X' {
+		s.r.read()
+		lit = append(lit, r)
 		f = s.readHexInteger
 		goto read
 	}
-	if r2 == 'b' || r2 == 'B' {
-		lit = append(lit, r2)
+	if r == 'b' || r == 'B' {
+		s.r.read()
+		lit = append(lit, r)
 		f = s.readBinaryInteger
 		goto read
 	}
-	s.s.Unread(p2, r2)
 
 read:
 	lit = append(lit, f()...)
 send:
-	s.send(p, INT, lit)
-	return (*Scanner).nextInit
+	s.send(off, INT, lit)
+	return (*Scanner).next
 }
 
 func (s *Scanner) readBinaryInteger() []rune {
@@ -170,12 +151,8 @@ func (s *Scanner) readHexInteger() []rune {
 func (s *Scanner) readStringOf(runes string) (lit []rune) {
 	lit := make([]rune, 0, 8)
 	for {
-		p, r, ok := s.s.Read()
-		if !ok {
-			break
-		}
-		if !strings.ContainsRune(runes, r) {
-			s.s.Unread(p, r)
+		_, r := s.r.read()
+		if r == -1 || !strings.ContainsRune(runes, r) {
 			break
 		}
 		lit = append(lit, r)
@@ -185,26 +162,20 @@ func (s *Scanner) readStringOf(runes string) (lit []rune) {
 
 func (s *Scanner) nextIdentifier() statefunc {
 	lit := make([]rune, 0, 16)
-	var firstp Pos
-	for {
-		p, r, ok := s.s.Read()
-		if !ok {
-			break
-		}
+	off, r := s.r.cur()
+	for r != -1 {
 		if r != '.' && r != '_' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			s.s.Unread(p, r)
 			break
-		}
-		if firstp == common.NoPos {
-			firstp = p
 		}
 		lit = append(lit, r)
+		_, r = s.r.read()
 	}
-	tok := common.Lookup(string(lit))
-	if tok == common.IDENT && lit[0] == '.' {
-		s.s.Err(firstp, "invalid keyword %q", lit)
-		return (*Scanner).nextInit
+	strlit := string(lit)
+	tok := token.Lookup(strlit)
+	if tok == token.IDENT && lit[0] == '.' {
+		s.r.err(firstp, "unknown keyword %q", strlit)
+		return (*Scanner).next
 	}
-	s.send(firstp, tok, lit)
-	return (*Scanner).nextInit
+	s.sendstr(off, tok, strlit)
+	return (*Scanner).next
 }

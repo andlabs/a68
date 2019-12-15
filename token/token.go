@@ -5,7 +5,7 @@ import (
 	gotoken "go/token"
 	"strconv"
 
-	"github.com/andlabs/a68/core"
+	"github.com/andlabs/a68/cpu"
 )
 
 // Token is the set of lexical tokens in the assembler.
@@ -159,8 +159,8 @@ var tokens = [...]string{
 var keywords map[string]Token
 
 func init() {
-	keywords = make(map[string]Token, (len(core.Opcodes) * 5) + (8 * 6) + 3 + (keywordEnd - keywordClassEnd))
-	for _, op := range core.Opcodes {
+	keywords = make(map[string]Token, (len(cpu.Opcodes) * 5) + (8 * 6) + 3 + (keywordEnd - keywordClassEnd))
+	for _, op := range cpu.Opcodes {
 		n := op.Name()
 		keywords[n] = OPCODE
 		keywords[n + ".b"] = OPCODE
