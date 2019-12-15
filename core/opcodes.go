@@ -1,5 +1,5 @@
 // 12 december 2019
-package cpu
+package core
 
 type Opcode interface {
 	Name() string

@@ -1,5 +1,5 @@
 // 13 december 2019
-package cpu
+package core
 
 /*TODO
 type Operand interface {
