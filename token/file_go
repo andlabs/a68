@@ -1,5 +1,5 @@
 // 4 december 2019
-package common
+package token
 
 import (
 	"fmt"
