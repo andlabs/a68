@@ -9,7 +9,6 @@ import (
 type Token int
 
 // Predefined tokens.
-// All their strings are string verions of the constant names.
 const (
 	// Special tokens.
 	// These are not literals, operators, or keywords.
@@ -17,130 +16,101 @@ const (
 	EOF
 	COMMENT
 
+	literalBegin
 	// Literal tokens.
-	IDENT		// Used for non-keyword identifiers.
+	IDENT
+	INT
+	CHAR
+	STRING
+	literalEnd
 
-	nPredefined
+	operatorBegin
+	// Operators and delimiters.
+	ADD		// +
+	SUB		// -
+	MUL		// *
+	DIV		// /
+	// MOD is listed as a keyword because % is reserved for binary integers.
+
+	BAND	// &
+	BOR		// |
+	BXOR	// ^
+	SHL		// <<
+	SHR		// >>
+	CMPL	// ~
+
+	EQ		// ==
+	NE		// !=
+	LT		// <
+	LE		// <=
+	GT		// >
+	GE		// >=
+
+	LAND	// &&
+	LOR		// ||
+	NOT		// !
+
+	COMMA	// ,
+	SEMI		// ;
+	COLON	// :
+
+	AT		// @ (denotes local labels)
+	NEXT	// :+ (reference to next nameless label in scope)
+	PREV		// :- (reference to previous nameless label in scope)
+
+	LPAREN	// (
+	RPAREN	// )
+	operatorEnd
+
+	keywordBegin
+	// Keywords and entire classes of keywords for 68000-specific tokens.
+	OPCODE		// all opcodes
+	DATAREG		// d0 .. d7
+	ADDRREG		// a0 .. a7, sp
+	DATAREG_W	// d0.w .. d7.w
+	ADDRREG_W	// a0.w .. a7.w, sp.w
+	DATAREG_L	// d0.l .. d7.l
+	ADDRREG_L	// a0.l .. a7.l, sp.l
+	PC			// pc
+	USP			// usp
+	CCR			// ccr
+	SR			// sr
+	DOT_W		// .w (absolute addressing suffix)
+	DOT_L		// .l (absolute addressing suffix)
+
+	DOT			// . (the current position; equivalent to $ or * in other assemblers)
+	MOD			// .mod
+	keywordEnd
 )
-
-type tokenType int
-const (
-	special tokenType = iota
-	literal
-	operator
-	keyword
-)
-
-type token struct {
-	typ		tokenType
-	str		string
-	prec		int
-}
-
-var tokens = make([]token, nPredefined, 256)
-var tokensLock sync.RWMutex
-
-func init() {
-	tokensLock.Lock()
-	defer tokensLock.Unlock()
-	tokens[ILLEGAL].typ = special
-	tokens[ILLEGAL].str = "ILLEGAL"
-	tokens[EOF].typ = special
-	tokens[EOF].str = "EOF"
-	tokens[COMMENT].typ = special
-	tokens[COMMENT].str = "COMMENT"
-	tokens[IDENT].typ = literal
-	tokens[IDENT].str = "IDENT"
-}
-
-// AddLiteral adds a literal token type. str should be a constant name for the token type.
-func AddLiteral(str string) Token {
-	tokensLock.Lock()
-	defer tokensLock.Unlock()
-	n := Token(len(tokens))
-	tokens = append(tokens, token{
-		typ:		literal,
-		str:		str,
-	})
-	return n
-}
-
-// AddOperator adds an operator token type. str should be the operator text. If the operator is a binary operator, prec should be its precedence, with 1 being the lowest precedence, then 2, 3, 4, and so on. If this operator is not a binary operator, prec should be 0.
-func AddOperator(str string, prec int) Token {
-	tokensLock.Lock()
-	defer tokensLock.Unlock()
-	n := Token(len(tokens))
-	tokens = append(tokens, token{
-		typ:		operator,
-		str:		str,
-		prec:		prec,
-	})
-	return n
-}
-
-var keywords = make(map[string]Token)
-var keywordsLock sync.RWMutex
-
-// AddKeyword adds a keyword token type. str should be the keyword itself. It panics if the keyword was already defined.
-func AddKeyword(str string) Token {
-	tokensLock.Lock()
-	defer tokensLock.Unlock()
-	keywordsLock.Lock()
-	defer keywordsLock.Unlock()
-	if keywords[str] != 0 {
-		panic("keyword " + str + " already defined")
-	}
-	n := Token(len(tokens))
-	keywords[str] = n
-	tokens = append(tokens, token{
-		typ:		keyword,
-		str:		str,
-	})
-	return n
-}
 
 // Lookup returns the token type for the identifier or keyword stored in str. If str does not store a keyword, IDENT is returned.
 func Lookup(str string) Token {
-	keywordsLock.RLock()
-	defer keywordsLock.RUnlock()
-	t, ok := keywords[str]
-	if !ok {
-		return IDENT
-	}
-	return t
+	TODO
+	return IDENT
 }
 
 // IsLiteral returns whether t is a literal.
 func (t Token) IsLiteral() bool {
-	tokensLock.RLock()
-	defer tokensLock.RUnlock()
-	return tokens[t].typ == literal
+	return t > literalBegin && t < literalEnd
 }
 
 // IsOperator returns whether t is an operator.
+// MOD is not considered an operator for the purposes of this test.
 func (t Token) IsOperator() bool {
-	tokensLock.RLock()
-	defer tokensLock.RUnlock()
-	return tokens[t].typ == operator
+	return t > operatorBegin && t < operatorEnd
 }
 
 // IsKeyword returns whether t is a keyword.
 func (t Token) IsKeyword() bool {
-	tokensLock.RLock()
-	defer tokensLock.RUnlock()
-	return tokens[t].typ == keyword
+	return t > keywordBegin && t < keywordEnd
 }
 
-// Precedence returns the binary-operator precedence for t, as passed to AddOperator. If t does not represent an operator, 0 is returned.
+// Precedence returns the binary-operator precedence for t. TODO
 func (t Token) Precedence() int {
-	tokensLock.RLock()
-	defer tokensLock.RUnlock()
-	return tokens[t].prec
+	TODO
 }
 
-// String returns the string for t. The returned value is as described by the various Add functions.
+// String returns the string for t. TODO
 func (t Token) String() string {
-	tokensLock.RLock()
-	defer tokensLock.RUnlock()
-	return tokens[t].str
+	TODO
 }
