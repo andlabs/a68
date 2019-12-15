@@ -22,7 +22,10 @@ type Scanner struct {
 	errs		*ErrorList
 }
 
-func NewScanner(f *File, data []byte) *Scanner {
+func NewScanner(f *token.File, data []byte) *Scanner {
+	if f.Size() != len(data) {
+		panic(fmt.Sprintf("size mismatch in NewScanner(): file size %d != data size %d", f.Size(), len(data))
+	}
 	s := &Scanner{
 		res:		make(chan result),
 		errs:		&ErrorList{},
@@ -173,7 +176,7 @@ func (s *Scanner) nextIdentifier() statefunc {
 	strlit := string(lit)
 	tok := token.Lookup(strlit)
 	if tok == token.IDENT && lit[0] == '.' {
-		s.r.err(firstp, "unknown keyword %q", strlit)
+		s.r.err(off, "unknown keyword %q", strlit)
 		return (*Scanner).next
 	}
 	s.sendstr(off, tok, strlit)
