@@ -11,10 +11,8 @@ import (
 
 type ExprOpcode byte
 const (
-	ExprStop ExprOpcode = iota
-	ExprInt
+	ExprInt ExprOpcode = iota
 	ExprName
-	ExprUnaryPlus
 	ExprNeg
 	ExprNot
 	ExprCmpl
@@ -40,10 +38,8 @@ const (
 )
 
 var exprOpcodeStrings = [nExprOpcodes]string{
-	ExprStop:		"ExprStop",
 	ExprInt:		"ExprInt",
 	ExprName:	"ExprName",
-	ExprUnaryPlus:		"ExprUnaryPlus",
 	ExprNeg:		"ExprNeg",
 	ExprNot:		"ExprNot",
 	ExprCmpl:	"ExprCmpl",
@@ -67,6 +63,32 @@ var exprOpcodeStrings = [nExprOpcodes]string{
 	ExprLOr:		"ExprLOr",
 }
 
+var exprOpcodeStackDeltas = [nExprOpcodes]int{
+	ExprInt:		1,
+	ExprName:	1,
+	ExprNeg:		0,
+	ExprNot:		0,
+	ExprCmpl:	0,
+	ExprMul:		-1,
+	ExprDiv:		-1,
+	ExprMod:		-1,
+	ExprShl:		-1,
+	ExprShr:		-1,
+	ExprBAnd:	-1,
+	ExprAdd:		-1,
+	ExprSub:		-1,
+	ExprBOr:		-1,
+	ExprBXor:		-1,
+	ExprEq:		-1,
+	ExprNe:		-1,
+	ExprLt:		-1,
+	ExprLe:		-1,
+	ExprGt:		-1,
+	ExprGe:		-1,
+	ExprLAnd:	-1,
+	ExprLOr:		-1,
+}
+
 func (e ExprOpcode) String() string {
 	if e >= nExprOpcodes {
 		return fmt.Sprintf("ExprOpcode(0x%X)", e)
@@ -88,51 +110,54 @@ func readError(err error) error {
 	return err
 }
 
-// binary.ReadUvarint() requires an io.ByteReader, grrr
-type fakeByteReader struct {
+// type to juggle a few varying requirements
+// - ReaderFrom requires us to return the number of bytes read, which binary.ReadUvariant() does not
+// - binary.ReadUvarint() requires an io.ByteReader
+type trackingReader struct {
 	r	io.Reader
+	n	int64
 }
-func (r *fakeByteReader) ReadByte() (byte, error) {
-	b := make([]byte, 0)
-	_, err := io.ReadFull(r.r, b)
-	if err != nil {
-		return 0, err
-	}
-	return b[0], nil
+func (r *trackingReader) readFull(p []byte) (n int64, err error) {
+	n, err = io.ReadFull(r.r, p)
+	r.n += n
+	return n, err
 }
-func toByteReader(r io.Reader) io.ByteReader {
-	if br, ok := r.(io.ByteReader); ok {
-		return br
-	}
-	return &fakeByteReader{r}
+func (r *trackingReader) ReadByte() (byte, error) {
+	b := make([]byte, 1)
+	_, err := r.readFull(b)
+	return b[0], err
 }
 
-// TODO convert this into a ReadFrom
-func readExprOp(r io.Reader) (e exprOp, err error) {
-	br := toByteReader(r)
-	b, err := br.ReadByte()
+func (e *exprOp) ReadFrom(r io.Reader) (n int64, err error) {
+	return e.readFrom(&trackingReader{r: r})
+}
+
+func (TODOTYPOCHECKe *exprOp) readFrom(r *trackingReader) (n int64, err error) {
+	var e2 exprOp
+	b, err := r.ReadByte()
 	if err != nil {
-		return exprOp{}, readError(err)
+		return r.n, readError(err)
 	}
-	e.code = exprOpcode(b)
-	if e.code >= nExprOpcodes {
-		return exprOp{}, fmt.Errorf("bad opcode 0x%X", code)
+	e2.code = exprOpcode(b)
+	if e2.code >= nExprOpcodes {
+		return r.n, fmt.Errorf("bad opcode 0x%X", code)
 	}
-	if e.code == ExprInt || e.code == ExprName {
-		e.int, err = binary.ReadUvarint(br)
+	if e2.code == ExprInt || e2.code == ExprName {
+		e2.int, err = binary.ReadUvarint(r)
 		if err != nil {
-			return exprOp{}, readError(err)
+			return r.n, readError(err)
 		}
 	}
-	if e.code == ExprName {
-		buf := make([]byte, e.int)
-		_, err = io.ReadFull(r, buf)
+	if e2.code == ExprName {
+		buf := make([]byte, e2.int)
+		_, err = r.readFull(buf)
 		if err != nil {
-			return exprOp{}, readError(err)
+			return r.n, readError(err)
 		}
-		e.str = string(buf)
+		e2.str = string(buf)
 	}
-	return e, nil
+	*e = e2
+	return r.n, nil
 }
 
 func (e *exprOp) WriteTo(w io.Writer) (n int64, err error) {
@@ -223,12 +248,23 @@ func (e *Expr) AddName(name string) error {
 	})
 }
 
+func (e *Expr) valid() bool {
+	nStack := 0
+	for _, op := range e.ops {
+		nStack += exprOpcodeStackDeltas[op.code]
+	}
+	return nStack == 1
+}
+
 func (e *Expr) Finish() error {
 	if e.finished {
 		return fmt.Errorf("cannot finish finished expression again")
 	}
 	if len(e.ops) == 0 {
 		return fmt.Errorf("cannot finish empty expression")
+	}
+	if !e.valid() {
+		return fmt.Errorf("cannot finish expression that doesn't resolve to a single value")
 	}
 	e.finished = true
 	return nil
