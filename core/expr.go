@@ -5,6 +5,7 @@ import (
 	"io"
 	"encoding/binary"
 	"bytes"
+	"sort"
 )
 
 // TODO properly mark internal errors?
@@ -132,32 +133,38 @@ func (e *exprOp) ReadFrom(r io.Reader) (n int64, err error) {
 	return e.readFrom(&trackingReader{r: r})
 }
 
-func (TODOTYPOCHECKe *exprOp) readFrom(r *trackingReader) (n int64, err error) {
-	var e2 exprOp
+func (e *exprOp) readFrom(r *trackingReader) (n int64, err error) {
+	e2, err := readExprOp(r)
+	if err == nil {
+		*e = e2
+	}
+	return r.n, err
+}
+
+func readExprOp(r *trackingReader) (e exprOp, err error) {
 	b, err := r.ReadByte()
 	if err != nil {
-		return r.n, readError(err)
+		return e, readError(err)
 	}
-	e2.code = exprOpcode(b)
-	if e2.code >= nExprOpcodes {
-		return r.n, fmt.Errorf("bad opcode 0x%X", code)
+	e.code = exprOpcode(b)
+	if e.code >= nExprOpcodes {
+		return e, fmt.Errorf("bad opcode 0x%X", code)
 	}
-	if e2.code == ExprInt || e2.code == ExprName {
-		e2.int, err = binary.ReadUvarint(r)
+	if e.code == ExprInt || e.code == ExprName {
+		e.int, err = binary.ReadUvarint(r)
 		if err != nil {
-			return r.n, readError(err)
+			return e, readError(err)
 		}
 	}
-	if e2.code == ExprName {
-		buf := make([]byte, e2.int)
+	if e.code == ExprName {
+		buf := make([]byte, e.int)
 		_, err = r.readFull(buf)
 		if err != nil {
-			return r.n, readError(err)
+			return e, readError(err)
 		}
-		e2.str = string(buf)
+		e.str = string(buf)
 	}
-	*e = e2
-	return r.n, nil
+	return e, nil
 }
 
 func (e *exprOp) WriteTo(w io.Writer) (n int64, err error) {
@@ -248,12 +255,20 @@ func (e *Expr) AddName(name string) error {
 	})
 }
 
-func (e *Expr) valid() bool {
+func (e *Expr) checkValid() error {
 	nStack := 0
-	for _, op := range e.ops {
-		nStack += exprOpcodeStackDeltas[op.code]
+	for i, op := range e.ops {
+		delta := exprOpcodeStackDeltas[op.code]
+		if (nStack + (delta - 1)) < 0 {
+			// don't allow popping an empty stack
+			// TODO don't assume that (delta - 1) is the number of stack pops (even though it is true for now)
+			return fmt.Errorf("%v at index %d does not have enough arguments", op.code, i)
+		}
+		nStack += delta
 	}
-	return nStack == 1
+	if nStack == 1 {
+		return fmt.Errorf("expression doesn't resolve to a single value")
+	}
 }
 
 func (e *Expr) Finish() error {
@@ -263,8 +278,9 @@ func (e *Expr) Finish() error {
 	if len(e.ops) == 0 {
 		return fmt.Errorf("cannot finish empty expression")
 	}
-	if !e.valid() {
-		return fmt.Errorf("cannot finish expression that doesn't resolve to a single value")
+	err := e.checkValid()
+	if err != nil {
+		return fmt.Errorf("cannot finish invalid expression: %v", err)
 	}
 	e.finished = true
 	return nil
@@ -274,7 +290,37 @@ func (e *Expr) Empty() bool {
 	return len(e.ops) == 0
 }
 
-// TODO read
+func (e *Expr) ReadFrom(r io.Reader) (n int64, err error) {
+	return e.readFrom(&trackingReader{r: r})
+}
+
+func (e *Expr) readFrom(r *trackingReader) (n int64, err error) {
+	e2, err := readExpr(r)
+	if err == nil {
+		*e = *e2
+	}
+	return r.n, err
+}
+
+func readExpr(r *trackingReader) (e *Expr, err error) {
+	e = NewExpr()
+	n, err := binary.ReadUvarint(r)
+	if err != nil {
+		return nil, readError(err)
+	}
+	e.ops = make([]exprOp, n)
+	for i, _ := range e.ops {
+		_, err = e.ops[i].readFrom(r)
+		if err != nil {
+			return nil, readError(err)
+		}
+	}
+	err = e.Finish()
+	if err != nil {
+		return nil, fmt.Errorf("invalid expression read: %v", err)
+	}
+	return e, nil
+}
 
 func (e *Expr) WriteTo(w io.Writer) (n int64, err error) {
 	if !e.finished {
@@ -289,11 +335,145 @@ func (e *Expr) WriteTo(w io.Writer) (n int64, err error) {
 	// the Write and WriteTo calls here cannot fail according to the documentation for bytes.Buffer
 	buf := new(bytes.Buffer)
 	buf.Write(num)
-	for _, op := range ops {
+	for _, op := range e.ops {
 		op.WriteTo(buf)
 	}
 
 	return buf.WriteTo(w)
 }
 
-// TODO evaluate
+type LookupNameFunc func(name string) (val uint64, ok bool)
+
+func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
+	if !e.finished {
+		// this also enforces the precondition that the stack will always have the right number of entries
+		return 0, fmt.Errorf("cannot evaluate unfinished expression")
+	}
+	stack := make([]uint64, 0, 16)
+	pop := func() (v uint64) {
+		i := len(stack) - 1
+		v = stack[i]
+		stack = stack[:i]
+		return v
+	}
+	pop2 := func() (a uint64, b uint64) {
+		i := len(stack) - 2
+		a = stack[i]
+		b = stack[i + 1]
+		stack = stack[:i]
+		return a, b
+	}
+	unknownNames := make(map[string]struct{}, len(e.ops) / 4 + 1)
+	for _, op := range e.ops {
+		switch op.code {
+		case ExprInt:
+			stack = append(stack, op.int)
+		case ExprName:
+			val, ok := lookupName(op.str)
+			if !ok {
+				unknownNames[op.str] = struct{}{}
+				val = 1		// don't stop evaluation
+			}
+			stack = append(stack, val)
+		case ExprNeg:
+			val := pop()
+			val = ^val + 1
+			stack = append(stack, val)
+		case ExprNot:
+			val := pop()
+			if val != 0 {
+				val = 0
+			} else {
+				val = 1
+			}
+			stack = append(stack, val)
+		case ExprCmpl:
+			val := pop()
+			val = ^val
+			stack = append(stack, val)
+		case ExprMul:
+			a, b := pop2()
+			stack = append(stack, a * b)
+		case ExprDiv:
+			a, b := pop2()
+			if b == 0 {
+				return 0, fmt.Errorf("division by zero")
+			}
+			stack = append(stack, a / b)
+		case ExprMod:
+			a, b := pop2()
+			if b == 0 {
+				return 0, fmt.Errorf("division by zero in modulo")
+			}
+			stack = append(stack, a % b)
+		case ExprShl:
+			a, b := pop2()
+			stack = append(stack, a << b)
+		case ExprShr:
+			a, b := pop2()
+			stack = append(stack, a >> b)
+		case ExprBAnd:
+			a, b := pop2()
+			stack = append(stack, a & b)
+		case ExprAdd:
+			a, b := pop2()
+			stack = append(stack, a + b)
+		case ExprSub:
+			a, b := pop2()
+			stack = append(stack, a - b)
+		case ExprBOr:
+			a, b := pop2()
+			stack = append(stack, a | b)
+		case ExprBXor:
+			a, b := pop2()
+			stack = append(stack, a ^ b)
+		case ExprEq:
+			// TODO
+		case ExprNe:
+			// TODO
+		case ExprLt:
+			// TODO
+		case ExprLe:
+			// TODO
+		case ExprGt:
+			// TODO
+		case ExprGe:
+			// TODO
+		case ExprLAnd:
+			a, b := pop2()
+			val := 0
+			if a != 0 && b != 0 {
+				val = 1
+			}
+			stack = append(stack, val)
+		case ExprLOr:
+			a, b := pop2()
+			val := 1
+			if a == 0 && b == 0 {
+				val = 0
+			}
+			stack = append(stack, val)
+		default:
+			panic("can't happen; likely missing new opcode implementation in Evaluate()")
+		}
+	}
+	if len(unknownNames) != 0 {
+		return 0, mkUnknownNamesError(unknownNames)
+	}
+	return stack[0], nil
+}
+
+type UnknownNamesError []string
+
+func mkUnknownNamesError(names map[string]struct{}) UnknownNamesError {
+	s := make([]string, 0, len(names))
+	for name, _ := range names {
+		s = append(s, name)
+	}
+	sort.Strings(s)
+	return UnknownNamesError(s)
+}
+
+func (e UnknownNamesError) Error() string {
+	return fmt.Sprintf("unknown names while evaluating expression: %q", []string(e))
+}
