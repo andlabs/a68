@@ -15,7 +15,7 @@ const (
 	ExprInt ExprOpcode = iota
 	ExprName
 	ExprNeg
-	ExprNot
+	ExprNot		// current implementation: 0 is false != 0 is false and !0 == 1
 	ExprCmpl
 	ExprMul
 	ExprDiv
@@ -27,7 +27,7 @@ const (
 	ExprSub
 	ExprBOr
 	ExprBXor
-	ExprEq
+	ExprEq		// current implementation: does a signed 64-bit integer comparison
 	ExprNe
 	ExprLt
 	ExprLe
@@ -344,6 +344,13 @@ func (e *Expr) WriteTo(w io.Writer) (n int64, err error) {
 
 type LookupNameFunc func(name string) (val uint64, ok bool)
 
+func boolval(b bool) uint64 {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 	if !e.finished {
 		// this also enforces the precondition that the stack will always have the right number of entries
@@ -428,17 +435,23 @@ func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 			a, b := pop2()
 			stack = append(stack, a ^ b)
 		case ExprEq:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) == int64(b)))
 		case ExprNe:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) != int64(b)))
 		case ExprLt:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) < int64(b)))
 		case ExprLe:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) <= int64(b)))
 		case ExprGt:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) > int64(b)))
 		case ExprGe:
-			// TODO
+			a, b := pop2()
+			stack = append(stack, boolval(int64(a) >= int64(b)))
 		case ExprLAnd:
 			a, b := pop2()
 			val := 0
