@@ -183,14 +183,7 @@ func (e *exprOp) WriteTo(w io.Writer) (n int64, err error) {
 	b[0] = byte(e.code)
 	copy(b[1:1 + len(num)], num)
 	copy(b[1 + len(num):], str)
-	nn, err := w.Write(b)
-	if nn > len(b) {
-		panic("exprOp.WriteTo(): invalid Write count")
-	}
-	if nn != len(b) && err == nil {
-		err = io.ErrShortWrite
-	}
-	return int64(nn), err
+	return bytes.NewReader(b).WriteTo(w)
 }
 
 func (e *exprOp) String() string {
