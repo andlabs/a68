@@ -2,6 +2,7 @@
 package core
 
 import (
+	"fmt"
 	"io"
 	"encoding/binary"
 	"bytes"
@@ -116,10 +117,10 @@ func readError(err error) error {
 // - binary.ReadUvarint() requires an io.ByteReader
 type trackingReader struct {
 	r	io.Reader
-	n	int64
+	n	int
 }
-func (r *trackingReader) readFull(p []byte) (n int64, err error) {
-	n, err = io.ReadFull(r.r, p)
+func (r *trackingReader) readFull(p []byte) (int, error) {
+	n, err := io.ReadFull(r.r, p)
 	r.n += n
 	return n, err
 }
@@ -138,7 +139,7 @@ func (e *exprOp) readFrom(r *trackingReader) (n int64, err error) {
 	if err == nil {
 		*e = e2
 	}
-	return r.n, err
+	return int64(r.n), err
 }
 
 func readExprOp(r *trackingReader) (e exprOp, err error) {
@@ -146,9 +147,9 @@ func readExprOp(r *trackingReader) (e exprOp, err error) {
 	if err != nil {
 		return e, readError(err)
 	}
-	e.code = exprOpcode(b)
+	e.code = ExprOpcode(b)
 	if e.code >= nExprOpcodes {
-		return e, fmt.Errorf("bad opcode 0x%X", code)
+		return e, fmt.Errorf("bad opcode 0x%X", e.code)
 	}
 	if e.code == ExprInt || e.code == ExprName {
 		e.int, err = binary.ReadUvarint(r)
@@ -178,18 +179,18 @@ func (e *exprOp) WriteTo(w io.Writer) (n int64, err error) {
 	if e.code == ExprName {
 		str = e.str
 	}
-	b = make([]byte, 1 + len(num) + len(str))
+	b := make([]byte, 1 + len(num) + len(str))
 	b[0] = byte(e.code)
 	copy(b[1:1 + len(num)], num)
 	copy(b[1 + len(num):], str)
-	n, err = w.Write(b)
-	if n > len(b) {
+	nn, err := w.Write(b)
+	if nn > len(b) {
 		panic("exprOp.WriteTo(): invalid Write count")
 	}
-	if n != len(b) && err == nil {
+	if nn != len(b) && err == nil {
 		err = io.ErrShortWrite
 	}
-	return n, err
+	return int64(nn), err
 }
 
 func (e *exprOp) String() string {
@@ -198,7 +199,7 @@ func (e *exprOp) String() string {
 	}
 	if e.code == ExprInt {
 		return fmt.Sprintf("%v 0x%08X", e.code, e.int)
-	]
+	}
 	if e.code == ExprName {
 		return fmt.Sprintf("%v %q", e.code, e.str)
 	}
@@ -239,6 +240,7 @@ func (e *Expr) AddInt(n uint64) error {
 		code:		ExprInt,
 		int:			n,
 	})
+	return nil
 }
 
 func (e *Expr) AddName(name string) error {
@@ -250,9 +252,10 @@ func (e *Expr) AddName(name string) error {
 	}
 	e.ops = append(e.ops, exprOp{
 		code:		ExprName,
-		int:			len(name),
+		int:			uint64(len(name)),
 		str:			name,
 	})
+	return nil
 }
 
 func (e *Expr) checkValid() error {
@@ -269,6 +272,7 @@ func (e *Expr) checkValid() error {
 	if nStack == 1 {
 		return fmt.Errorf("expression doesn't resolve to a single value")
 	}
+	return nil
 }
 
 func (e *Expr) Finish() error {
@@ -299,7 +303,7 @@ func (e *Expr) readFrom(r *trackingReader) (n int64, err error) {
 	if err == nil {
 		*e = *e2
 	}
-	return r.n, err
+	return int64(r.n), err
 }
 
 func readExpr(r *trackingReader) (e *Expr, err error) {
@@ -328,7 +332,7 @@ func (e *Expr) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	// first write number of opcodes
-	num = make([]byte, binary.MaxVarintLen64)
+	num := make([]byte, binary.MaxVarintLen64)
 	nn := binary.PutUvarint(num, uint64(len(e.ops)))
 	num = num[:nn]
 
@@ -454,14 +458,14 @@ func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 			stack = append(stack, boolval(int64(a) >= int64(b)))
 		case ExprLAnd:
 			a, b := pop2()
-			val := 0
+			val := uint64(0)
 			if a != 0 && b != 0 {
 				val = 1
 			}
 			stack = append(stack, val)
 		case ExprLOr:
 			a, b := pop2()
-			val := 1
+			val := uint64(1)
 			if a == 0 && b == 0 {
 				val = 0
 			}
