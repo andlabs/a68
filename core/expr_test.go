@@ -3,6 +3,7 @@ package core
 
 import (
 	"testing"
+	"bytes"
 )
 
 func mustAdd(t *testing.T, e *Expr, op ExprOpcode) {
@@ -51,7 +52,51 @@ var goodExprCases = []struct {
 	value:	5,
 }}
 
-func TestExprs(t *testing.T) {
+type testEvalHandler struct {
+	errs		[]error
+}
+
+func (h *testEvalHandler) LookupName(name string) (val uint64, ok bool) {
+	return 0, false
+}
+
+func (h *testEvalHandler) ReportError(err error) {
+	h.errs = append(h.errs, err)
+}
+
+func testRead(t *testing.T, data []byte) *Expr {
+	e := NewExpr()
+	n, err := e.ReadFrom(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("ReadFrom() failed: %v", err)
+	} else if n != int64(len(data)) {
+		t.Fatalf("ReadFrom() read wrong amount: got %d, want %d", n, len(data))
+	}
+	return e
+}
+
+func testWrite(t *testing.T, e *Expr, want []byte) {
+	b := &bytes.Buffer{}
+	n, err := e.WriteTo(b)
+	if err != nil {
+		t.Errorf("WriteTo() failed: %v", err)
+	} else if n != int64(b.Len()) {
+		t.Errorf("WriteTo() indicated it wrote wrong amount: got %d, want %d", n, b.Len())
+	}
+	// TODO use package cmp for the buffer
+}
+
+func testEval(t *testing.T, e *Expr, wantval uint64, wanterrs []error) {
+	wantok := len(wanterrs) == 0
+	h := &testEvalHandler{}
+	gotval, gotok := e.Evaluate(h)
+	if gotval != wantval || gotok != wantok {
+		t.Errorf("Evaluate() return value wrong: got (%v, %v), want (%v, %v)", gotval, gotok, wantval, wantok)
+	}
+	// TODO use package cmp here for errors
+}
+
+func TestExprMkEval(t *testing.T) {
 	for _, tc := range goodExprCases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := tc.mk(t)
@@ -59,3 +104,36 @@ func TestExprs(t *testing.T) {
 		})
 	}
 }
+
+func TestExprReadEval(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := testRead(t, tc.raw)
+			testEval(t, e, tc.value, tc.valerrs)
+		})
+	}
+}
+
+func TestExprMkWrite(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := tc.mk(t)
+			testWrite(t, e, tc.raw)
+		})
+	}
+}
+
+func TestExprReadWrite(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := testRead(t, tc.raw)
+			testWrite(t, e, tc.raw)
+		})
+	}
+}
+
+// TODO TestExprIdempotencyMkWriteReadEval
+// TODO TestExprIdempotencyMkWriteReadWrite
+// TODO TestExprIdempotencyReadWriteReadEval
+
+// TODO all the error conditions

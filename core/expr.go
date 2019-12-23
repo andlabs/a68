@@ -92,7 +92,7 @@ var exprOpcodeStackDeltas = [nExprOpcodes]int{
 
 func (e ExprOpcode) String() string {
 	if e >= nExprOpcodes {
-		return fmt.Sprintf("ExprOpcode(0x%X)", e)
+		return fmt.Sprintf("ExprOpcode(0x%X)", byte(e))
 	}
 	return exprOpcodeStrings[e]
 }
