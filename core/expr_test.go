@@ -45,7 +45,10 @@ var goodExprCases = []struct {
 	valerrs	[]error
 }{{
 	name:	"5",
-	raw:		[]byte{byte(ExprInt), 5},
+	raw:		[]byte{
+		1,
+		byte(ExprInt), 5,
+	},
 	mk:		func(t *testing.T) *Expr {
 		e := NewExpr()
 		mustAddInt(t, e, 5)
@@ -139,8 +142,8 @@ func TestExprReadWrite(t *testing.T) {
 	}
 }
 
-// TODO TestExprIdempotencyMkWriteReadEval
-// TODO TestExprIdempotencyMkWriteReadWrite
-// TODO TestExprIdempotencyReadWriteReadEval
+// TODO TestExprStableInversionMkWriteReadEval
+// TODO TestExprStableInversionMkWriteReadWrite
+// TODO TestExprStableInversionReadWriteReadEval
 
 // TODO all the error conditions
