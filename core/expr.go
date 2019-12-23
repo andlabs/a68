@@ -6,7 +6,6 @@ import (
 	"io"
 	"encoding/binary"
 	"bytes"
-	"sort"
 )
 
 // TODO properly mark internal errors?
@@ -339,7 +338,22 @@ func (e *Expr) WriteTo(w io.Writer) (n int64, err error) {
 	return buf.WriteTo(w)
 }
 
-type LookupNameFunc func(name string) (val uint64, ok bool)
+type EvaluateHandler interface {
+	LookupName(name string) (val uint64, ok bool)
+	ReportError(err error)
+}
+
+var (
+	ErrEvaluatingUnfinishedExpr = fmt.Errorf("cannot evaluate unfinished expression")
+	ErrZeroDivisor = fmt.Errorf("division by zero")
+	ErrZeroDivisorMod = fmt.Errorf("division by zero in modulo")
+)
+
+type UnknownNameError string
+
+func (e UnknownNameError) Error() string {
+	return fmt.Sprintf("unknown names %q", string(e))
+}
 
 func boolval(b bool) uint64 {
 	if b {
@@ -348,10 +362,11 @@ func boolval(b bool) uint64 {
 	return 0
 }
 
-func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
+func (e *Expr) Evaluate(handler EvaluateHandler) (val uint64, ok bool) {
 	if !e.finished {
 		// this also enforces the precondition that the stack will always have the right number of entries
-		return 0, fmt.Errorf("cannot evaluate unfinished expression")
+		handler.ReportError(ErrEvaluatingUnfinishedExpr)
+		return 0, false
 	}
 	stack := make([]uint64, 0, 16)
 	pop := func() (v uint64) {
@@ -367,15 +382,16 @@ func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 		stack = stack[:i]
 		return a, b
 	}
-	unknownNames := make(map[string]struct{}, len(e.ops) / 4 + 1)
+	noError := true
 	for _, op := range e.ops {
 		switch op.code {
 		case ExprInt:
 			stack = append(stack, op.int)
 		case ExprName:
-			val, ok := lookupName(op.str)
+			val, ok := handler.LookupName(op.str)
 			if !ok {
-				unknownNames[op.str] = struct{}{}
+				handler.ReportError(UnknownNameError(op.str))
+				noError = false
 				val = 1		// don't stop evaluation
 			}
 			stack = append(stack, val)
@@ -401,13 +417,17 @@ func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 		case ExprDiv:
 			a, b := pop2()
 			if b == 0 {
-				return 0, fmt.Errorf("division by zero")
+				handler.ReportError(ErrZeroDivisor)
+				noError = false
+				b = 1			// don't stop evaluation
 			}
 			stack = append(stack, a / b)
 		case ExprMod:
 			a, b := pop2()
 			if b == 0 {
-				return 0, fmt.Errorf("division by zero in modulo")
+				handler.ReportError(ErrZeroDivisorMod)
+				noError = false
+				b = 1			// don't stop evaluation
 			}
 			stack = append(stack, a % b)
 		case ExprShl:
@@ -467,23 +487,5 @@ func (e *Expr) Evaluate(lookupName LookupNameFunc) (val uint64, err error) {
 			panic("can't happen; likely missing new opcode implementation in Evaluate()")
 		}
 	}
-	if len(unknownNames) != 0 {
-		return 0, mkUnknownNamesError(unknownNames)
-	}
-	return stack[0], nil
-}
-
-type UnknownNamesError []string
-
-func mkUnknownNamesError(names map[string]struct{}) UnknownNamesError {
-	s := make([]string, 0, len(names))
-	for name, _ := range names {
-		s = append(s, name)
-	}
-	sort.Strings(s)
-	return UnknownNamesError(s)
-}
-
-func (e UnknownNamesError) Error() string {
-	return fmt.Sprintf("unknown names while evaluating expression: %q", []string(e))
+	return stack[0], noError
 }
