@@ -4,6 +4,9 @@ package core
 import (
 	"testing"
 	"bytes"
+
+	// TODO this is BSD 3-clause, which is technically not MIT compatible
+	"github.com/google/go-cmp/cmp"
 )
 
 func mustAdd(t *testing.T, e *Expr, op ExprOpcode) {
@@ -83,7 +86,9 @@ func testWrite(t *testing.T, e *Expr, want []byte) {
 	} else if n != int64(b.Len()) {
 		t.Errorf("WriteTo() indicated it wrote wrong amount: got %d, want %d", n, b.Len())
 	}
-	// TODO use package cmp for the buffer
+	if diff := cmp.Diff(b.Bytes(), want); diff != "" {
+		t.Errorf("WriteTo() wrote wrong data: (-got +want)\n%v", diff)
+	}
 }
 
 func testEval(t *testing.T, e *Expr, wantval uint64, wanterrs []error) {
@@ -93,7 +98,9 @@ func testEval(t *testing.T, e *Expr, wantval uint64, wanterrs []error) {
 	if gotval != wantval || gotok != wantok {
 		t.Errorf("Evaluate() return value wrong: got (%v, %v), want (%v, %v)", gotval, gotok, wantval, wantok)
 	}
-	// TODO use package cmp here for errors
+	if diff := cmp.Diff(h.errs, wanterrs); diff != "" {
+		t.Errorf("Evaluate() returned wrong errors: (-got +want)\n%v", diff)
+	}
 }
 
 func TestExprMkEval(t *testing.T) {

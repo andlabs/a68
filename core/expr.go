@@ -261,7 +261,7 @@ func (e *Expr) checkValid() error {
 		}
 		nStack += delta
 	}
-	if nStack == 1 {
+	if nStack != 1 {
 		return fmt.Errorf("expression doesn't resolve to a single value")
 	}
 	return nil
