@@ -56,6 +56,32 @@ var goodExprCases = []struct {
 		return e
 	},
 	value:	5,
+}, {
+	name:	"KnownName",
+	raw:		[]byte{
+		1,
+		byte(ExprName), 9, 'K', 'n', 'o', 'w', 'n', 'N', 'a', 'm', 'e',
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddName(t, e, "KnownName")
+		mustFinish(t, e)
+		return e
+	},
+	value:	5,
+}, {
+	name:	"UnknownName",
+	raw:		[]byte{
+		1,
+		byte(ExprName), 11, 'U', 'n', 'k', 'n', 'o', 'w', 'n', 'N', 'a', 'm', 'e',
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddName(t, e, "UnknownName")
+		mustFinish(t, e)
+		return e
+	},
+	valerrs:	[]error{UnknownNameError("UnknownName")},
 }}
 
 type testEvalHandler struct {
@@ -63,6 +89,9 @@ type testEvalHandler struct {
 }
 
 func (h *testEvalHandler) LookupName(name string) (val uint64, ok bool) {
+	if name == "KnownName" {
+		return 5, true
+	}
 	return 0, false
 }
 

@@ -487,5 +487,8 @@ func (e *Expr) Evaluate(handler EvaluateHandler) (val uint64, ok bool) {
 			panic("can't happen; likely missing new opcode implementation in Evaluate()")
 		}
 	}
-	return stack[0], noError
+	if !noError {
+		return 0, false
+	}
+	return stack[0], true
 }
