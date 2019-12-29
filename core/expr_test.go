@@ -37,6 +37,12 @@ func mustFinish(t *testing.T, e *Expr) {
 	}
 }
 
+// must be var as this cannot be done using constant expressions (and I'd rather use the Go language rules than the actual implementation)
+var (
+	neg5Signed = int64(-5)
+	neg5Unsigned = uint64(neg5Signed)
+)
+
 var goodExprCases = []struct {
 	name	string
 	raw		[]byte
@@ -82,6 +88,51 @@ var goodExprCases = []struct {
 		return e
 	},
 	valerrs:	[]error{UnknownNameError("UnknownName")},
+}, {
+	name:	"-5",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 5,
+		byte(ExprNeg),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 5)
+		mustAdd(t, e, ExprNeg)
+		mustFinish(t, e)
+		return e
+	},
+	value:	neg5Unsigned,
+}, {
+	name:	"-Negative5",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 0xFB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
+		byte(ExprNeg),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, neg5Unsigned)
+		mustAdd(t, e, ExprNeg)
+		mustFinish(t, e)
+		return e
+	},
+	value:	5,
+}, {
+	name:	"-0",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 0,
+		byte(ExprNeg),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 0)
+		mustAdd(t, e, ExprNeg)
+		mustFinish(t, e)
+		return e
+	},
+	value:	0,
 }}
 
 type testEvalHandler struct {
