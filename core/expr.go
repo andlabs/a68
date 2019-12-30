@@ -304,6 +304,10 @@ func readExpr(r *trackingReader) (e *Expr, err error) {
 	if err != nil {
 		return nil, readError(err)
 	}
+	if n == 0 {
+		// Since we cannot have zero-length expressions yet, we can use whether the first byte (and thus, n) is zero to denote any future revisions to the binary expression representation.
+		return nil, fmt.Errorf("unsupported expression encoding version")
+	}
 	e.ops = make([]exprOp, n)
 	for i, _ := range e.ops {
 		_, err = e.ops[i].readFrom(r)
