@@ -133,6 +133,83 @@ var goodExprCases = []struct {
 		return e
 	},
 	value:	0,
+}, {
+	name:	"!0",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 0,
+		byte(ExprNot),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 0)
+		mustAdd(t, e, ExprNot)
+		mustFinish(t, e)
+		return e
+	},
+	value:	1,
+}, {
+	name:	"!1",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 1,
+		byte(ExprNot),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 1)
+		mustAdd(t, e, ExprNot)
+		mustFinish(t, e)
+		return e
+	},
+	value:	0,
+}, {
+	name:	"!5",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 5,
+		byte(ExprNot),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 5)
+		mustAdd(t, e, ExprNot)
+		mustFinish(t, e)
+		return e
+	},
+	value:	0,
+}, {
+	name:	"!Negative5",
+	raw:		[]byte{
+		2,
+		byte(ExprInt), 0xFB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
+		byte(ExprNot),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, neg5Unsigned)
+		mustAdd(t, e, ExprNot)
+		mustFinish(t, e)
+		return e
+	},
+	value:	0,
+}, {
+	name:	"!-5",
+	raw:		[]byte{
+		3,
+		byte(ExprInt), 5,
+		byte(ExprNeg),
+		byte(ExprNot),
+	},
+	mk:		func(t *testing.T) *Expr {
+		e := NewExpr()
+		mustAddInt(t, e, 5)
+		mustAdd(t, e, ExprNeg)
+		mustAdd(t, e, ExprNot)
+		mustFinish(t, e)
+		return e
+	},
+	value:	0,
 }}
 
 type testEvalHandler struct {
@@ -161,7 +238,7 @@ func testRead(t *testing.T, data []byte) *Expr {
 	return e
 }
 
-func testWrite(t *testing.T, e *Expr, want []byte) {
+func testWrite(t *testing.T, e *Expr, want []byte) []byte {
 	b := &bytes.Buffer{}
 	n, err := e.WriteTo(b)
 	if err != nil {
@@ -172,6 +249,7 @@ func testWrite(t *testing.T, e *Expr, want []byte) {
 	if diff := cmp.Diff(b.Bytes(), want); diff != "" {
 		t.Errorf("WriteTo() wrote wrong data: (-got +want)\n%v", diff)
 	}
+	return b.Bytes()
 }
 
 func testEval(t *testing.T, e *Expr, wantval uint64, wanterrs []error) {
@@ -222,8 +300,37 @@ func TestExprReadWrite(t *testing.T) {
 	}
 }
 
-// TODO TestExprStableInversionMkWriteReadEval
-// TODO TestExprStableInversionMkWriteReadWrite
-// TODO TestExprStableInversionReadWriteReadEval
+func TestExprStableInversionMkWriteReadEval(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := tc.mk(t)
+			buf := testWrite(t, e, tc.raw)
+			e2 := testRead(t, buf)
+			testEval(t, e2, tc.value, tc.valerrs)
+		})
+	}
+}
+
+func TestExprStableInversionMkWriteReadWrite(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := tc.mk(t)
+			buf := testWrite(t, e, tc.raw)
+			e2 := testRead(t, buf)
+			testWrite(t, e2, tc.raw)
+		})
+	}
+}
+
+func TestExprStableInversionReadWriteReadEval(t *testing.T) {
+	for _, tc := range goodExprCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := testRead(t, tc.raw)
+			buf := testWrite(t, e, tc.raw)
+			e2 := testRead(t, buf)
+			testEval(t, e2, tc.value, tc.valerrs)
+		})
+	}
+}
 
 // TODO all the error conditions
